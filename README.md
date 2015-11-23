@@ -1,3 +1,6 @@
+[![Version button](https://img.shields.io/github/release/adamb70/CSGO-Market-Float-Finder.svg)](https://github.com/adamb70/CSGO-Market-Float-Finder/releases)
+[![Download button](https://img.shields.io/badge/download-here-green.svg)](http://bit.ly/CSGOmarketfloat)
+
 # CSGO-Market-Float-Finder
 Find Counter Strike: Global Offensive Steam Market skin float values, seeds, and skin type. Tabulates data for easy sorting.
 
@@ -5,6 +8,9 @@ Find Counter Strike: Global Offensive Steam Market skin float values, seeds, and
 
 ## Download
 
+**Please read the instructions using this program!**
+
+[Download](http://bit.ly/CSGOmarketfloat)
 
 ## Instructions
 #### Signing In
@@ -13,6 +19,8 @@ Find Counter Strike: Global Offensive Steam Market skin float values, seeds, and
 1. Launch the program and log in with your Steam account. You may check 'Remember Me' to autofill details when you launch the program, but be aware that this will store your Steam username and password **in plaintext** in the settings.txt file.
 
 2. If it is your first time launching the program Steam will send you an authentication email, which the program will ask for. Enter this code and press 'OK'. The program will now save a 'sentry_username.bin' file which will authenticate you every time you log in from now on.
+
+NOTE: If the program tells you that you need to sign in before processing items after your first login, just restart the program and try again. I will try and fix this bug soon.
 
 #### Finding Market Data
 1. Take the Steam Market URL of the item you want.(eg. http://steamcommunity.com/market/listings/730/%E2%98%85%20Gut%20Knife%20%7C%20Doppler%20%28Factory%20New%29)
