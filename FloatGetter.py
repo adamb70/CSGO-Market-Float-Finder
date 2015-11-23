@@ -4,6 +4,7 @@ import struct
 import json
 import requests
 from requests import exceptions
+from werkzeug import urls
 from collections import OrderedDict
 
 from pysteamkit.protobuf import steammessages_clientserver_pb2
@@ -181,6 +182,9 @@ def getfloat(paintwear):
 def getMarketItems(url, count, currency, start=0):
     if not url.startswith('http://'):
         url = 'http://' + url
+
+
+    url = urls.url_fix(url)
 
     if currency == 'GBP':
         curr = 2
