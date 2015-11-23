@@ -8,7 +8,7 @@ Find Counter Strike: Global Offensive Steam Market skin float values, seeds, and
 
 ## Download
 
-**Please read the instructions using this program!**
+**Please read the instructions before using this program!**
 
 [Download](http://bit.ly/CSGOmarketfloat)
 
