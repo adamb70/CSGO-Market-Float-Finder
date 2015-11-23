@@ -4,7 +4,7 @@ import struct
 import json
 import requests
 from requests import exceptions
-from werkzeug import urls
+from werkzeug.urls import url_fix
 from collections import OrderedDict
 
 from pysteamkit.protobuf import steammessages_clientserver_pb2
@@ -184,7 +184,7 @@ def getMarketItems(url, count, currency, start=0):
         url = 'http://' + url
 
 
-    url = urls.url_fix(url)
+    url = url_fix(url)
 
     if currency == 'GBP':
         curr = 2
