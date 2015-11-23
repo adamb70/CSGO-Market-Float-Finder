@@ -1,6 +1,8 @@
 # CSGO-Market-Float-Finder
 Find Counter Strike: Global Offensive Steam Market skin float values, seeds, and skin type. Tabulates data for easy sorting.
 
+![alt tag](http://i.imgur.com/q2Dqh51.png?1)
+
 ## Download
 
 
@@ -49,3 +51,6 @@ You should not use this while processing market data, as this could mix the resu
 
 ## Information
 Uses **[Pysteamkit](https://bitbucket.org/AzuiSleet/pysteamkit/overview)** - A Python [SteamKit](https://github.com/SteamRE/SteamKit) port by Aziusleet
+
+## TODO
+* Show full information, not only float, on Parse Single Item dialog.
