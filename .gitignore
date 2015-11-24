@@ -1,0 +1,5 @@
+*.py[cod]
+*.exe
+*.ui
+
+build/
