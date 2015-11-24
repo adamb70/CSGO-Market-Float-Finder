@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Csgo-market-float-finder by adamb70</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Csgo-market-float-finder</h1>
+      <h2 class="project-tagline">Find Counter Strike:Global Offensive Steam Market skin float values, seeds, and skin type. Tabulates data for easy sorting.</h2>
+      <a href="https://github.com/adamb70/CSGO-Market-Float-Finder" class="btn">View on GitHub</a>
+      <a href="https://github.com/adamb70/CSGO-Market-Float-Finder/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/adamb70/CSGO-Market-Float-Finder/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="csgo-market-float-finder" class="anchor" href="#csgo-market-float-finder" aria-hidden="true"><span class="octicon octicon-link"></span></a>CSGO-Market-Float-Finder</h1>
+
+<p>Find Counter Strike: Global Offensive Steam Market skin float values, seeds, and skin type. Tabulates data for easy sorting.</p>
+
+<p><img src="http://i.imgur.com/q2Dqh51.png" alt="Screenshot"></p>
+
+<h2>
+<a id="download" class="anchor" href="#download" aria-hidden="true"><span class="octicon octicon-link"></span></a>Download</h2>
+
+<p><strong>Please read the instructions before using this program!</strong></p>
+
+<h2>
+<a id="---download---" class="anchor" href="#---download---" aria-hidden="true"><span class="octicon octicon-link"></span></a>--&gt; <a href="http://bit.ly/CSGOmarketfloat">Download</a> &lt;--</h2>
+
+<h2>
+<a id="instructions" class="anchor" href="#instructions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Instructions</h2>
+
+<h4>
+<a id="signing-in" class="anchor" href="#signing-in" aria-hidden="true"><span class="octicon octicon-link"></span></a>Signing In</h4>
+
+<p><strong>You must sign in with a Steam account that owns CS:GO!</strong></p>
+
+<ol>
+<li><p>Launch the program and log in with your Steam account. You may check 'Remember Me' to autofill details when you launch the program, but be aware that this will store your Steam username and password <strong>in plaintext</strong> in the settings.txt file.</p></li>
+<li><p>If it is your first time launching the program Steam will send you an authentication email, which the program will ask for. Enter this code and press 'OK'. The program will now save a 'sentry_username.bin' file which will authenticate you every time you log in from now on.</p></li>
+</ol>
+
+<p>NOTE: If the program tells you that you need to sign in before processing items after your first login, just restart the program and try again. I will try and fix this bug soon.</p>
+
+<h4>
+<a id="finding-market-data" class="anchor" href="#finding-market-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Finding Market Data</h4>
+
+<ol>
+<li><p>Take the Steam Market URL of the item you want.
+(eg. <a href="http://steamcommunity.com/market/listings/730/%E2%98%85%20Gut%20Knife%20%7C%20Doppler%20%28Factory%20New%29">http://steamcommunity.com/market/listings/730/%E2%98%85%20Gut%20Knife%20%7C%20Doppler%20%28Factory%20New%29</a>)</p></li>
+<li><p>Paste the URL into the Market URL box</p></li>
+<li><p>Select the number of items to retrieve (1-3000).
+<strong>NOTE:</strong> Using a high number such as 3000 will take a while, and using 3000 may cause Steam to throttle your connection for a few minutes. The Steam market only allows 100 results at a time, so 3000 items will query Steam 30 times.</p></li>
+<li><p>Choose a currency and press 'Retrieve Items'.</p></li>
+<li><p>Choose a Time Delay for each item in the process. If the time delay is too low Steam will not respond to the message in time and no more results will be added to the table. If this occurs, you will have to close the program and start again.</p></li>
+<li><p>Wait until the processing finishes. You may pause the program and continue by pressing 'Pause' and 'Start'. <strong>NOTE:</strong> If you pause the processing and want to start processing a new set of data, clear the table first.</p></li>
+<li><p>Once the processing has finished you need to filter by float value to find the lowest one, and then take note of that item's position. The position represents the item's place in the Steam market at the time of gathering the data. If this position says '27' for example, it will be on the second page since Steam displays 10 items per page.</p></li>
+<li><p>To get around this 10 item limit, add <strong>'?query=&amp;start=0&amp;count=100'</strong> to the end of the market URL in your browser. This will make Steam display 100 items per page. Now if your item is position '27' it will be shown on the first page. This makes using the Javascript market link easy.</p></li>
+<li><p>The Javascript Market Link can be pasted into your browser address bar, but first you must manually type <strong>'javascript:'</strong>. This is due to browser security reasons. If the Steam item is on the current page, the Javascript link
+will bring up a dialog to buy the item. If this dialog does not come up, the item has either moved page since gathering data (usually to the next page), or has already been sold.</p></li>
+</ol>
+
+<h4>
+<a id="additional-features" class="anchor" href="#additional-features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Additional Features</h4>
+
+<ul>
+<li>Export as .CSV can be used to export the current contents of the table into a spreadsheet.</li>
+<li>Parse Single Item:
+
+<ul>
+<li>This option brings up a menu that allows you to enter an 'Inspect in game' link, and returns the float value for that skin. This can be used to find the float value for items from outside of the Steam Market.
+You should not use this while processing market data, as this could mix the results up. Pause any processing first, and resume it after.</li>
+</ul>
+</li>
+<li>Settings:
+
+<ul>
+<li>The settings file contains default settings for the program. The currency is set to 0 (USD) by default, but can be set to:
+
+<ul>
+<li>1 for GBP</li>
+<li>2 for EUR</li>
+<li>3 for RUB</li>
+<li>4 for CAD</li>
+<li>5 for BRL</li>
+</ul>
+</li>
+<li>The settings file will also contain your Steam username and password <strong>IN PLAINTEXT</strong> if you choose to check 'Remember Me' on the login form. You can delete these two lines if you have checked 'Remember Me' in the past and no longer want them remembered.</li>
+</ul>
+</li>
+</ul>
+
+<h2>
+<a id="information" class="anchor" href="#information" aria-hidden="true"><span class="octicon octicon-link"></span></a>Information</h2>
+
+<p>Uses <strong><a href="https://bitbucket.org/AzuiSleet/pysteamkit/overview">Pysteamkit</a></strong> - A Python <a href="https://github.com/SteamRE/SteamKit">SteamKit</a> port by Aziusleet</p>
+
+<h2>
+<a id="todo" class="anchor" href="#todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>TODO</h2>
+
+<ul>
+<li>Show full information, not only float, on Parse Single Item dialog.</li>
+</ul>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/adamb70/CSGO-Market-Float-Finder">Csgo-market-float-finder</a> is maintained by <a href="https://github.com/adamb70">adamb70</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
