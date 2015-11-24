@@ -1,17 +1,12 @@
 # -*- coding: utf-8 -*-
 
 from PySide import QtCore, QtGui
-import os
-import pkg_resources
 import webbrowser
-import FloatGetter
+import FloatUI
 import time
 from collections import OrderedDict
 from decimal import Decimal
 import sys
-from errno import WSAEHOSTUNREACH
-from socket import error as socket_error
-import itemIndex
 
 sys.setrecursionlimit(5000)
 
@@ -26,12 +21,11 @@ class Ui_MainWindow(QtCore.QObject):
         self.WorkerThread.moveToThread(self.t)
         self.t.start()
         self.PassedHere = False
+        self.WorkerThread.SetStatus.connect(lambda x: self.StatusLabel.setText(x))
         self.currency = None
         self.soldcount = 0
         self.start = 0
 
-        self.WorkerThread.progresscount = 0
-        self.WorkerThread.SetStatus.connect(lambda x: self.StatusLabel.setText(x))
         self.WorkerThread.progressSignal.connect(lambda x: self.progressBar_2.setProperty("value", x))
         self.WorkerThread.StartEn.connect(lambda x: self.StartButton.setEnabled(x))
         self.WorkerThread.StartDis.connect(lambda x: self.StartButton.setDisabled(x))
@@ -42,12 +36,20 @@ class Ui_MainWindow(QtCore.QObject):
         self.WorkerThread.TableSorting.connect(lambda x: self.tableWidget.setSortingEnabled(x))
         self.WorkerThread.NewRow.connect(lambda x: self.tableWidget.insertRow(x))
         self.WorkerThread.SetTableItem.connect(self.SetTable)
+        self. WorkerThread.FloatError.connect(self.FloatError)
 
         self.WorkerThread.ShowError.connect(self.showError)
         self.WorkerThread.ShowInfo.connect(self.showInfo)
         self.WorkerThread.SetCurrHeader.connect(self.setCurrHeader)
 
     def setupUi(self, MainWindow):
+        global baseHex
+        global initialoffset
+        global offsets
+        baseHex = None
+
+        self.WorkerThread.progresscount = 0
+
         MainWindow.setObjectName("MainWindow")
         MainWindow.setMinimumSize(QtCore.QSize(800, 600))
         icon = QtGui.QIcon()
@@ -204,9 +206,9 @@ class Ui_MainWindow(QtCore.QObject):
         self.tableWidget.setIconSize(QtCore.QSize(0, 0))
         self.tableWidget.setHorizontalScrollMode(QtGui.QAbstractItemView.ScrollPerPixel)
         self.tableWidget.setCornerButtonEnabled(True)
-        self.tableWidget.setColumnCount(7)
+        self.tableWidget.setColumnCount(5)
         self.tableWidget.setObjectName("tableWidget")
-        self.tableWidget.setColumnCount(7)
+        self.tableWidget.setColumnCount(5)
         self.tableWidget.verticalHeader().hide()
         item = QtGui.QTableWidgetItem()
         self.tableWidget.setHorizontalHeaderItem(0, item)
@@ -218,10 +220,6 @@ class Ui_MainWindow(QtCore.QObject):
         self.tableWidget.setHorizontalHeaderItem(3, item)
         item = QtGui.QTableWidgetItem()
         self.tableWidget.setHorizontalHeaderItem(4, item)
-        item = QtGui.QTableWidgetItem()
-        self.tableWidget.setHorizontalHeaderItem(5, item)
-        item = QtGui.QTableWidgetItem()
-        self.tableWidget.setHorizontalHeaderItem(6, item)
         self.tableWidget.horizontalHeader().setDefaultSectionSize(155)
         self.tableWidget.horizontalHeader().setMinimumSectionSize(50)
         self.tableWidget.horizontalHeader().setStretchLastSection(True)
@@ -266,10 +264,14 @@ class Ui_MainWindow(QtCore.QObject):
         try:
             with open('settings.txt', 'r') as settings:
                 for line in settings.readlines():
+                    if line.startswith('initialoffset='):
+                        initialoffset = eval(line.replace('initialoffset=', ''))
+                    if line.startswith('offsets='):
+                        offsets = eval(line.replace('offsets=', ''))
                     if line.startswith('defaultcurrency='):
-                        self.CurrencySelector.setCurrentIndex(int(line.replace('defaultcurrency=', '')))
+                        self.CurrencySelector.setCurrentIndex(eval(line.replace('defaultcurrency=', '')))
                     if line.startswith('defaultmarketcount='):
-                        self.CountSpinner.setValue(int(line.replace('defaultmarketcount=', '')))
+                        self.CountSpinner.setValue(eval(line.replace('defaultmarketcount=', '')))
                     if line.startswith('defaultdelay='):
                         self.DelaySpinner.setValue(eval(line.replace('defaultdelay=', '')))
         except IOError:
@@ -314,9 +316,7 @@ class Ui_MainWindow(QtCore.QObject):
         self.tableWidget.horizontalHeaderItem(1).setText(QtGui.QApplication.translate("MainWindow", "Float Value", None, QtGui.QApplication.UnicodeUTF8))
         self.tableWidget.horizontalHeaderItem(2).setText(QtGui.QApplication.translate("MainWindow", "Price", None, QtGui.QApplication.UnicodeUTF8))
         self.tableWidget.horizontalHeaderItem(3).setText(QtGui.QApplication.translate("MainWindow", "Listing ID", None, QtGui.QApplication.UnicodeUTF8))
-        self.tableWidget.horizontalHeaderItem(4).setText(QtGui.QApplication.translate("MainWindow", "Skin Type/Index", None, QtGui.QApplication.UnicodeUTF8))
-        self.tableWidget.horizontalHeaderItem(5).setText(QtGui.QApplication.translate("MainWindow", "Skin Seed", None, QtGui.QApplication.UnicodeUTF8))
-        self.tableWidget.horizontalHeaderItem(6).setText(QtGui.QApplication.translate("MainWindow", "Javascript Market Link", None, QtGui.QApplication.UnicodeUTF8))
+        self.tableWidget.horizontalHeaderItem(4).setText(QtGui.QApplication.translate("MainWindow", "Javascript Market Link", None, QtGui.QApplication.UnicodeUTF8))
         self.StatusLabel.setText(QtGui.QApplication.translate("MainWindow", "", None, QtGui.QApplication.UnicodeUTF8))
         self.menuHelp.setTitle(QtGui.QApplication.translate("MainWindow", "Help", None, QtGui.QApplication.UnicodeUTF8))
         self.menuFile.setTitle(QtGui.QApplication.translate("MainWindow", "File", None, QtGui.QApplication.UnicodeUTF8))
@@ -327,7 +327,6 @@ class Ui_MainWindow(QtCore.QObject):
         self.changesettings.setText(QtGui.QApplication.translate("MainWindow", "Settings...", None, QtGui.QApplication.UnicodeUTF8))
         self.actionQuit.setText(QtGui.QApplication.translate("MainWindow", "Quit", None, QtGui.QApplication.UnicodeUTF8))
 
-
     def ReadMe(self):
         webbrowser.open('README.txt')
 
@@ -335,23 +334,23 @@ class Ui_MainWindow(QtCore.QObject):
         webbrowser.open('settings.txt')
 
     def ParseSingle(self):
-        self.popup = PopupDialog(self)
+        self.popup = MyPopupDialog()
         self.popup.setupUi(self.popup)
+
+        # For Modal dialogs
         self.popup.exec_()
 
     def ExportCSV(self):
         outname, _ = QtGui.QFileDialog.getSaveFileName(MainWindow, 'Open file', '', 'Comma Separated Values (*.csv)')
         with open(outname, 'w') as outfile:
-            outfile.write('Position,Float Value,Price (%s),MarketID,Skin Type/Index,Skin Seed,Javascript Market Link\n' % self.currency)
+            outfile.write('Position,Float Value,Price (%s),MarketID,Javascript Market Link\n' % self.currency)
             for row in xrange(0, self.tableWidget.rowCount()):
                 col0 = self.tableWidget.item(row, 0)
                 col1 = self.tableWidget.item(row, 1)
                 col2 = self.tableWidget.item(row, 2)
                 col3 = self.tableWidget.item(row, 3)
                 col4 = self.tableWidget.item(row, 4)
-                col5 = self.tableWidget.item(row, 5)
-                col6 = self.tableWidget.item(row, 6)
-                outfile.write('%s,%s,%s,%s,%s,%s,"%s"\n' % (col0.text(), col1.text(), col2.text(), col3.text(), col4.text(), col5.text(), col6.text()))
+                outfile.write('%s,%s,%s,%s,"%s"\n' % (col0.text(), col1.text(), col2.text(), col3.text(), col4.text()))
 
     def ClearTable(self):
         caution = QtGui.QMessageBox.warning(MainWindow, 'Are you sure?', 'Clearing the table will remove all table data and cancel the skin processing. \nAre you sure you wish to continue?', QtGui.QMessageBox.Yes|QtGui.QMessageBox.No)
@@ -388,7 +387,7 @@ class Ui_MainWindow(QtCore.QObject):
         self.WorkerThread.delay = self.DelaySpinner.value()
 
         if url == '':
-            QtGui.QMessageBox.warning(MainWindow, 'Error', "Please enter a market URL", QtGui.QMessageBox.Close)
+            QtGui.QMessageBox.warning(MainWindow, 'Error', "Please enter a market URL.", QtGui.QMessageBox.Close)
         else:
             self.getMarketData.emit(url)
 
@@ -396,13 +395,26 @@ class Ui_MainWindow(QtCore.QObject):
         self.tableWidget.setItem(self.tableWidget.rowCount()-1, data[0], QCustomTableWidgetItem(data[1]))
 
     def ProcessItems(self):
+        self.WorkerThread.PID = FloatUI.getpid('csgo.exe')
+        if not self.WorkerThread.PID:
+            QtGui.QMessageBox.warning(MainWindow, 'Error', 'Please start CS:GO and retry.', QtGui.QMessageBox.Ok)
+            return
+
+        global baseHex
+        if not baseHex:
+            baseHex = FloatUI.GetModuleByName('studiorender.dll', self.WorkerThread.PID)
+
         self.WorkerThread.delay = self.DelaySpinner.value()
+
         self.StartButton.setDisabled(True)
         self.PauseButton.setEnabled(True)
         self.RetrieveButton.setDisabled(True)
 
         self.StatusLabel.setText("Processing skins...")
         self.processItems.emit(object)
+
+    def FloatError(self):
+        QtGui.QMessageBox.warning(MainWindow, 'Error', 'Could not find float value, try restarting the game. If you get this message again contact me, a CS:GO update may have changed the memory address.', QtGui.QMessageBox.Ok)
 
     def Pause(self):
         self.StatusLabel.setText("Pausing...")
@@ -430,6 +442,7 @@ class WorkerThread(QtCore.QObject):
     NewRow = QtCore.Signal(int)
     SetTableItem = QtCore.Signal(list)
     TableSorting = QtCore.Signal(bool)
+    FloatError = QtCore.Signal(bool)
     SetStatus = QtCore.Signal(str)
 
     ShowError = QtCore.Signal(str)
@@ -439,13 +452,13 @@ class WorkerThread(QtCore.QObject):
 
     def __init__(self, parent):
         QtCore.QObject.__init__(self)
-        self.parent = parent
-        self.parent.processItems.connect(self.ProcessItems)
-        self.parent.getMarketData.connect(self.GetMarketData)
+        parent.processItems.connect(self.ProcessItems)
+        parent.getMarketData.connect(self.GetMarketData)
 
         self.progresscount = None
-        self.marketdata = None
+        self.PID = None
         self.delay = None
+        self.marketdata = None
         self.pause = False
 
         self.soldcount = 0
@@ -453,71 +466,21 @@ class WorkerThread(QtCore.QObject):
         self.currencysym = None
         self.count = 0
 
-        self.UserObject = None
-        self.username = None
-        self.password = None
-
-        self.login()
-
-    def login(self):
-        self.UserObject = FloatGetter.User()
-        loginPopup = LoginUI(self)
-        loginPopup.setupUi(loginPopup)
-        loginPopup.exec_()
 
     @QtCore.Slot(object)
     def ProcessItems(self):
-        if self.username and self.password:
-            # Have to log in from this function every time processing starts; for some reason it won't work otherwise
-            self.UserObject = FloatGetter.User()
-            self.UserObject.login(self.username, self.password)
-        else:
-            QtGui.QMessageBox.warning(QtGui.QWidget(), 'Error', 'You must sign in first. Please restart the program.', QtGui.QMessageBox.Close)
-
-        if self.UserObject.client.connection.connected:
-            self.UserObject.csgo.launch()
-        else:
-            return
-
         for n in range(self.progresscount, len(self.marketdata)):
-            time.sleep(self.delay)
             if not self.pause:
                 self.SetStatus.emit('Processing...  %s/%s' % (self.progresscount+1, len(self.marketdata)))
                 skininfo = self.marketdata.items()[n]
-                itemcode = skininfo[1][1].replace('steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20' ,'').split('A')
-                # If Market item or Inventory item
-                if itemcode[0].startswith('S'):
-                    param_s = int(itemcode[0].replace('S',''))
-                    param_m = None
-                else:
-                    param_m = int(itemcode[0].replace('M',''))
-                    param_s = None
-
-                itemAD = itemcode[1].split('D')
-                param_a = int(itemAD[0])
-                param_d = int(itemAD[1])
+                webbrowser.open_new(skininfo[1][1])
+                time.sleep(self.delay)
 
                 pos = n+1
                 try:
-                    if param_s:
-                        data = self.UserObject.csgo.requestEconData(param_a, param_d, param_s=param_s)
-                    elif param_m:
-                        data = self.UserObject.csgo.requestEconData(param_a, param_d, param_m=param_m)
-
-                    paintseed = data.iteminfo.paintseed
-                    paintindex = data.iteminfo.paintindex
-                    paintwear = data.iteminfo.paintwear
-
-                    skinFloat = FloatGetter.getfloat(paintwear)
-                    floatvalue = Decimal(skinFloat).quantize(Decimal('1.000000000000'))
-
-                    try:
-                        skinid = 'ID' + str(paintindex)
-                        paintindex = itemIndex.index[skinid]
-                    except KeyError:
-                        pass
-
+                    floatvalue = Decimal(FloatUI.getFloat(self.PID, baseHex, initialoffset, offsets)).quantize(Decimal('1.000000000000'))
                 except TypeError:
+                    self.FloatError.emit(True)
                     self.PauseDis.emit(True)
                     self.StartEn.emit(True)
                     self.RetrieveEn.emit(True)
@@ -535,9 +498,7 @@ class WorkerThread(QtCore.QObject):
                 self.SetTableItem.emit([1, floatvalue])
                 self.SetTableItem.emit([2, price])
                 self.SetTableItem.emit([3, listingid])
-                self.SetTableItem.emit([4, paintindex])
-                self.SetTableItem.emit([5, paintseed])
-                self.SetTableItem.emit([6, javascript])
+                self.SetTableItem.emit([4, javascript])
 
                 self.TableSorting.emit(True)
 
@@ -545,15 +506,13 @@ class WorkerThread(QtCore.QObject):
                 self.progressSignal.emit(int(float(self.progresscount/float(len(self.marketdata)))*100))
             else:
                 self.pause = False
-                self.UserObject.disconnect()
                 self.StartEn.emit(True)
                 self.PauseDis.emit(True)
                 self.RetrieveEn.emit(True)
                 self.progressSignal.emit(0)
-                self.SetStatus.emit('Processing paused, press "Start" to continue. If you want to process a different set of data, clear the table first.')
+                self.SetStatus.emit('Processing paused. Press "Start" to continue.')
                 return
 
-        self.UserObject.disconnect()
         self.SetStatus.emit('Processing Finished. Clear table before starting a new process.')
         self.StartEn.emit(True)
         self.PauseDis.emit(True)
@@ -567,7 +526,7 @@ class WorkerThread(QtCore.QObject):
         self.SetStatus.emit('Gathering Data...')
         while self.count > 100:
             self.count -= 100
-            tempdata, tempsold = FloatGetter.getMarketItems(url, 100, self.currency, start)
+            tempdata, tempsold = FloatUI.getMarketItems(url, 100, self.currency, start)
             if type(tempdata) != str:
                 if self.marketdata:
                     newtempdict = OrderedDict()
@@ -586,7 +545,7 @@ class WorkerThread(QtCore.QObject):
                     time.sleep(1)
 
         else:
-            tempdata, tempsold = FloatGetter.getMarketItems(url, self.count, self.currency, start)
+            tempdata, tempsold = FloatUI.getMarketItems(url, self.count, self.currency, start)
             if type(tempdata) != str:
                 if self.marketdata:
                     newtempdict = OrderedDict()
@@ -605,7 +564,7 @@ class WorkerThread(QtCore.QObject):
                 return
             else:
                 if len(self.marketdata) + self.soldcount < initialcount:
-                    message = "Found %s available skins and %s sold skins. \nThe other %s skins did not exist, you may retry or just process current data (%s skins)." % (len(self.marketdata), self.soldcount, initialcount-(len(self.marketdata)+self.soldcount), len(self.marketdata))
+                    message = "Found %s available skins and %s sold skins. \nThe other %s skins were likely duplicated in the search or did not exist, you may retry or just process current data (%s skins)." % (len(self.marketdata), self.soldcount, initialcount-(len(self.marketdata)+self.soldcount), len(self.marketdata))
                     self.ShowInfo.emit(('Information', message))
                     self.StartEn.emit(True)
                     self.SetStatus.emit("%s skins retrieved. Read to start processing. Estimated processing time, with %s delay, is %s seconds." % (len(self.marketdata), self.delay, self.delay*len(self.marketdata)))
@@ -614,40 +573,33 @@ class WorkerThread(QtCore.QObject):
                 elif len(self.marketdata) < 1:
                     message = "Found %s available skins and %s sold skins. \nNo skins to process, please check market has available items." % (len(self.marketdata), self.soldcount)
                     self.ShowError(message)
-                    self.SetStatus.emit('Ready')
                 else:
                     message = "Successfully found %s available skins and %s sold skins. Any sold skins will not be processed. \nClose this message and press 'Start'." % (len(self.marketdata), self.soldcount)
                     self.ShowInfo.emit(('Success!', message))
                     self.StartEn.emit(True)
+                    self.SetStatus.emit("%s skins retrieved. Read to start processing. Estimated processing time, with %s delay, is %s seconds" % (len(self.marketdata), self.delay, self.delay*len(self.marketdata)))
                     self.SetCurrHeader.emit(self.currencysym)
-                    self.SetStatus.emit("%s skins retrieved. Read to start processing. Estimated processing time, with %s delay, is %s seconds." % (len(self.marketdata), self.delay, self.delay*len(self.marketdata)))
 
 
-
-class QCustomTableWidgetItem(QtGui.QTableWidgetItem):
+class QCustomTableWidgetItem (QtGui.QTableWidgetItem):
     def __init__(self, value):
         super(QCustomTableWidgetItem, self).__init__(str('%s' % value))
 
     def __lt__(self, other):
         if isinstance(other, QCustomTableWidgetItem):
-            try:
-                selfDataValue = float(self.data(QtCore.Qt.EditRole))
-                otherDataValue = float(other.data(QtCore.Qt.EditRole))
-                return selfDataValue < otherDataValue
-            except ValueError:
-                # Can not be converted to float, so probably does not need to be (str, unicode)
-                selfDataValue = self.data(QtCore.Qt.EditRole)
-                otherDataValue = other.data(QtCore.Qt.EditRole)
-                return selfDataValue < otherDataValue
+            selfDataValue = float(self.data(QtCore.Qt.EditRole))
+            otherDataValue = float(other.data(QtCore.Qt.EditRole))
+            return selfDataValue < otherDataValue
         else:
             return QtGui.QTableWidgetItem.__lt__(self, other)
 
 
-class PopupDialog(QtGui.QDialog):
+
+class MyPopupDialog(QtGui.QDialog):
     def __init__(self, parent=None):
-        super(PopupDialog, self).__init__()
-        self.callback = parent
+        super(MyPopupDialog, self).__init__()
         self.setWindowFlags(QtCore.Qt.WindowSystemMenuHint)
+
 
     def setupUi(self, Form):
         Form.setObjectName("Parse Single Item")
@@ -706,294 +658,38 @@ class PopupDialog(QtGui.QDialog):
 
     def GetSingle(self):
         link = self.InspectLinkBox.displayText()
-        if str(link).startswith('steam://rungame/730/'):
-            if self.callback.WorkerThread.username and self.callback.WorkerThread.password:
-                # Have to log in from this function every time processing starts; for some reason it won't work otherwise
-                # TODO: Find out why User() instances don't work across functions
-                UserObject = FloatGetter.User()
-                UserObject.login(self.callback.WorkerThread.username, self.callback.WorkerThread.password)
-            else:
-                QtGui.QMessageBox.warning(self, 'Error', 'You must sign in first', QtGui.QMessageBox.Close)
+        PID = FloatUI.getpid('csgo.exe')
 
-            if UserObject.client.connection.connected:
-                UserObject.csgo.launch()
-            else:
-                return
-
-            itemcode = link.replace('steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20' ,'').split('A')
-            # If Market item or Inventory item
-            if itemcode[0].startswith('S'):
-                param_s = int(itemcode[0].replace('S',''))
-                param_m = None
-            else:
-                param_m = int(itemcode[0].replace('M',''))
-                param_s = None
-
-            itemAD = itemcode[1].split('D')
-            param_a = int(itemAD[0])
-            param_d = int(itemAD[1])
-
-            try:
-                if param_s:
-                    data = UserObject.csgo.requestEconData(param_a, param_d, param_s=param_s)
-                elif param_m:
-                    data = UserObject.csgo.requestEconData(param_a, param_d, param_m=param_m)
-
-                paintwear = data.iteminfo.paintwear
-                skinFloat = FloatGetter.getfloat(paintwear)
-                floatvalue = Decimal(skinFloat).quantize(Decimal('1.000000000000'))
-
-                self.ResultBox.setText(str(floatvalue))
-
-            except TypeError:
-                return
-
-        else:
-            QtGui.QMessageBox.warning(self, 'Error', 'Please enter a inspect in game link.', QtGui.QMessageBox.Close)
-
-
-class LoginUI(QtGui.QDialog):
-    def __init__(self, parent=None):
-        super(LoginUI, self).__init__()
-        self.callback = parent
-        self.setWindowFlags(QtCore.Qt.WindowSystemMenuHint)
-        self.overwritten = False
-
-    def setupUi(self, Form):
-        Form.setObjectName("Login to Steam")
-        Form.resize(255, 150)
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("logo.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        Form.setWindowIcon(icon)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(Form.sizePolicy().hasHeightForWidth())
-        Form.setSizePolicy(sizePolicy)
-        Form.setMinimumSize(QtCore.QSize(255, 150))
-        Form.setMaximumSize(QtCore.QSize(255, 150))
-        self.verticalLayout = QtGui.QVBoxLayout(Form)
-        self.verticalLayout.setObjectName("verticalLayout")
-        self.label_3 = QtGui.QLabel(Form)
-        self.label_3.setAlignment(QtCore.Qt.AlignCenter)
-        self.label_3.setObjectName("label_3")
-        self.verticalLayout.addWidget(self.label_3)
-        self.horizontalLayout = QtGui.QHBoxLayout()
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.label = QtGui.QLabel(Form)
-        self.label.setObjectName("label")
-        self.horizontalLayout.addWidget(self.label)
-        self.UsernameBox = QtGui.QLineEdit(Form)
-        self.UsernameBox.setObjectName("UsernameBox")
-        self.horizontalLayout.addWidget(self.UsernameBox)
-        self.verticalLayout.addLayout(self.horizontalLayout)
-        self.horizontalLayout_2 = QtGui.QHBoxLayout()
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.label_2 = QtGui.QLabel(Form)
-        self.label_2.setMargin(1)
-        self.label_2.setObjectName("label_2")
-        self.horizontalLayout_2.addWidget(self.label_2)
-        self.PasswordBox = QtGui.QLineEdit(Form)
-        self.PasswordBox.setInputMask("")
-        self.PasswordBox.setText("")
-        self.PasswordBox.setFrame(True)
-        self.PasswordBox.setEchoMode(QtGui.QLineEdit.Password)
-        self.PasswordBox.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
-        self.PasswordBox.setReadOnly(False)
-        self.PasswordBox.setPlaceholderText("")
-        self.PasswordBox.setObjectName("PasswordBox")
-        self.horizontalLayout_2.addWidget(self.PasswordBox)
-        self.verticalLayout.addLayout(self.horizontalLayout_2)
-        self.horizontalLayout_3 = QtGui.QHBoxLayout()
-        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        spacerItem = QtGui.QSpacerItem(59, 20, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Minimum)
-        self.horizontalLayout_3.addItem(spacerItem)
-        self.RememberBox = QtGui.QCheckBox(Form)
-        self.RememberBox.setObjectName("RememberBox")
-        self.horizontalLayout_3.addWidget(self.RememberBox)
-        self.verticalLayout.addLayout(self.horizontalLayout_3)
-        self.horizontalLayout_4 = QtGui.QHBoxLayout()
-        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
-        spacerItem1 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.horizontalLayout_4.addItem(spacerItem1)
-        self.LoginButton = QtGui.QPushButton(Form)
-        self.LoginButton.setObjectName("LoginButton")
-        self.horizontalLayout_4.addWidget(self.LoginButton)
-        spacerItem2 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.horizontalLayout_4.addItem(spacerItem2)
-        self.verticalLayout.addLayout(self.horizontalLayout_4)
+        global baseHex
+        if not baseHex:
+            'geting bvasekgsmk'
+            baseHex = FloatUI.GetModuleByName('studiorender.dll', PID)
 
         try:
             with open('settings.txt', 'r') as settings:
                 for line in settings.readlines():
-                    if line.startswith('username='):
-                        self.UsernameBox.setText(line.replace('username=', '').replace('\n',''))
-                        self.RememberBox.setChecked(True)
-                    if line.startswith('password='):
-                        self.PasswordBox.setText(line.replace('password=', ''))
+                    if line.startswith('initialoffset='):
+                        initialoffset = eval(line.replace('initialoffset=', ''))
+                    if line.startswith('offsets='):
+                        offsets = eval(line.replace('offsets=', ''))
+                    if line.startswith('defaultdelay='):
+                        delay = (eval(line.replace('defaultdelay=', '')))
         except IOError:
-            QtGui.QMessageBox.warning(MainWindow, 'Error', 'Could not read settings.txt file! Ensure file exists and try again.', QtGui.QMessageBox.Close)
+            QtGui.QMessageBox.warning(self, 'Error', 'Could not read settings.txt file! Ensure file exists and try again.', QtGui.QMessageBox.Close)
 
-        self.retranslateUi(Form)
-        QtCore.QMetaObject.connectSlotsByName(Form)
+        if str(link).startswith('steam://rungame/730/'):
+            if not PID:
+                QtGui.QMessageBox.warning(self, 'Error', 'Please start CS:GO and retry.', QtGui.QMessageBox.Ok)
+                return
 
-        QtCore.QObject.connect(self.LoginButton, QtCore.SIGNAL("clicked()"), self.login)
+            webbrowser.open_new(link)
+            time.sleep(float(delay))
 
-    def retranslateUi(self, Form):
-        Form.setWindowTitle(QtGui.QApplication.translate("Form", "Login to Steam", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_3.setText(QtGui.QApplication.translate("Form", "Sign in to Steam", None, QtGui.QApplication.UnicodeUTF8))
-        self.label.setText(QtGui.QApplication.translate("Form", "Username:", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_2.setText(QtGui.QApplication.translate("Form", "Password:", None, QtGui.QApplication.UnicodeUTF8))
-        self.RememberBox.setText(QtGui.QApplication.translate("Form", "Remember details", None, QtGui.QApplication.UnicodeUTF8))
-        self.LoginButton.setText(QtGui.QApplication.translate("Form", "Login", None, QtGui.QApplication.UnicodeUTF8))
+            floatvalue = Decimal(FloatUI.getFloat(PID, baseHex, initialoffset, offsets)).quantize(Decimal('1.000000000000'))
+            self.ResultBox.setText(str(floatvalue))
 
-    def login(self):
-        username = self.UsernameBox.text().encode('ascii')
-        password = self.PasswordBox.text().encode('ascii')
-        remember = self.RememberBox.isChecked()
-
-        if remember:
-            try:
-                with open('settings.txt', 'r') as settings:
-                    data = settings.readlines()
-
-                for num, line in enumerate(data):
-                    if line.startswith('username='):
-                        data[num] = line.replace(line, 'username='+username+'\n')
-                    if line.startswith('password='):
-                        data[num] = line.replace(line, 'password='+password)
-                        self.overwritten = True
-
-                with open('settings.txt', 'w') as settings:
-                    settings.writelines(data)
-                    if not self.overwritten:
-                        settings.seek(0, 2)
-                        settings.writelines(['\nusername='+username, '\npassword='+password])
-
-            except IOError:
-                QtGui.QMessageBox.warning(MainWindow, 'Error', 'Could not read settings.txt file! Ensure file exists and try again.', QtGui.QMessageBox.Close)
-
-        if username and password:
-            try:
-                loginstatus = self.callback.UserObject.login(username, password)
-
-                if loginstatus != True:
-                    if loginstatus == 5:
-                        QtGui.QMessageBox.warning(self, 'Error', 'Incorrect password or username.', QtGui.QMessageBox.Close)
-                    elif loginstatus == 63:
-                        self.callback.UserObject.client.disconnect()
-                        authPopup = AuthUI(parent=self)
-                        authPopup.setupUi(authPopup)
-                        authPopup.exec_()
-                        self.close()
-                else:
-                    self.callback.username = username
-                    self.callback.password = password
-                    self.close()
-                    QtGui.QMessageBox.information(self, 'Success!', 'Signed in to Steam.', QtGui.QMessageBox.Close)
-
-            except socket_error as serr:
-                if serr.errno == WSAEHOSTUNREACH:
-                    QtGui.QMessageBox.warning(self, 'Error', 'Could not connect to Steam.', QtGui.QMessageBox.Close)
-                else:
-                    QtGui.QMessageBox.warning(self, 'Error', 'Socket error ' + str(serr.errno), QtGui.QMessageBox.Close)
-
-            if self.callback.UserObject.client.connection.connected:
-                # Logged in
-                if self.callback.UserObject.client.callback.firstlogin:
-                    # Send Steam a test message to make sure sentry file is properly registered
-                    self.callback.UserObject.csgo.launch()
         else:
-            QtGui.QMessageBox.warning(self, 'Error', 'Please enter your username and password.', QtGui.QMessageBox.Close)
-
-
-class AuthUI(QtGui.QDialog):
-    def __init__(self, parent=None):
-        self.callback = parent
-        super(AuthUI, self).__init__()
-        self.setWindowFlags(QtCore.Qt.WindowSystemMenuHint)
-
-    def setupUi(self, Form):
-        Form.setObjectName("Authenticate")
-        Form.resize(220, 105)
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("logo.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        Form.setWindowIcon(icon)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(Form.sizePolicy().hasHeightForWidth())
-        Form.setSizePolicy(sizePolicy)
-        Form.setMinimumSize(QtCore.QSize(220, 105))
-        Form.setMaximumSize(QtCore.QSize(220, 105))
-        self.verticalLayout = QtGui.QVBoxLayout(Form)
-        self.verticalLayout.setObjectName("verticalLayout")
-        self.label_3 = QtGui.QLabel(Form)
-        self.label_3.setAlignment(QtCore.Qt.AlignHCenter|QtCore.Qt.AlignTop)
-        self.label_3.setWordWrap(True)
-        self.label_3.setObjectName("label_3")
-        self.verticalLayout.addWidget(self.label_3)
-        self.horizontalLayout = QtGui.QHBoxLayout()
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.label = QtGui.QLabel(Form)
-        self.label.setObjectName("label")
-        self.horizontalLayout.addWidget(self.label)
-        self.AuthBox = QtGui.QLineEdit(Form)
-        self.AuthBox.setObjectName("AuthBox")
-        self.horizontalLayout.addWidget(self.AuthBox)
-        self.verticalLayout.addLayout(self.horizontalLayout)
-        self.horizontalLayout_2 = QtGui.QHBoxLayout()
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.horizontalLayout_2.addItem(spacerItem)
-        self.AuthButton = QtGui.QPushButton(Form)
-        self.AuthButton.setObjectName("AuthButton")
-        self.horizontalLayout_2.addWidget(self.AuthButton)
-        spacerItem1 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.horizontalLayout_2.addItem(spacerItem1)
-        self.verticalLayout.addLayout(self.horizontalLayout_2)
-
-        self.retranslateUi(Form)
-        QtCore.QMetaObject.connectSlotsByName(Form)
-
-        QtCore.QObject.connect(self.AuthButton, QtCore.SIGNAL("clicked()"), self.auth)
-
-    def retranslateUi(self, Form):
-        Form.setWindowTitle(QtGui.QApplication.translate("Form", "Authenticate", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_3.setText(QtGui.QApplication.translate("Form", "Steam has sent an authentication code to your email, please enter it below.", None, QtGui.QApplication.UnicodeUTF8))
-        self.label.setText(QtGui.QApplication.translate("Form", "Auth Code:", None, QtGui.QApplication.UnicodeUTF8))
-        self.AuthButton.setText(QtGui.QApplication.translate("Form", "OK", None, QtGui.QApplication.UnicodeUTF8))
-
-    def auth(self):
-        authcode = self.AuthBox.text().encode('ascii')
-        loginstatus = self.callback.callback.UserObject.login(authcode=authcode)
-
-        if loginstatus == True:
-            self.close()
-        elif loginstatus == 65:
-            QtGui.QMessageBox.warning(self, 'Error', 'Incorrect auth code.', QtGui.QMessageBox.Close)
-        elif loginstatus == 63:
-            QtGui.QMessageBox.warning(self, 'Error', 'Please enter auth code.', QtGui.QMessageBox.Close)
-        else:
-            QtGui.QMessageBox.warning(self, 'Error', 'Auth failed with error '+str (loginstatus), QtGui.QMessageBox.Close)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            QtGui.QMessageBox.warning(self, 'Error', 'Please enter a inspect in game link.', QtGui.QMessageBox.Close)
 
 
 if __name__ == "__main__":

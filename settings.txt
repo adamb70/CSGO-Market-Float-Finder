@@ -1,0 +1,8 @@
+[User Settings]
+defaultmarketcount=50
+defaultcurrency=0
+defaultdelay=2.6
+
+[Program Settings]
+initialoffset=0x00097C38
+offsets=[0xC, 0x278, 0x0, 0x14]
