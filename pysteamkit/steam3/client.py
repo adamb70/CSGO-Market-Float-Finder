@@ -155,7 +155,7 @@ class SteamClient():
         logonResponse = self.wait_for_message(EMsg.ClientLogOnResponse)
         return logonResponse.body
 
-    def login(self, username=None, password=None, login_key=None, auth_code=None, steamid=0):
+    def login(self, username=None, password=None, login_key=None, auth_code=None, steamid=0, two_factor_code=None):
         self.username = username
 
         message = msg_base.ProtobufMessage(steammessages_clientserver_pb2.CMsgClientLogon, EMsg.ClientLogon)
@@ -177,6 +177,8 @@ class SteamClient():
             message.body.login_key = login_key
         if auth_code:
             message.body.auth_code = auth_code
+        if two_factor_code:
+            message.body.two_factor_code = two_factor_code
 
         sentryfile = self.callback.get_sentry_file(username)
         if sentryfile:

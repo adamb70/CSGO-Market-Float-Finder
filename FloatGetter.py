@@ -14,19 +14,20 @@ from pysteamkit.steam3 import msg_base
 from pysteamkit.util import Util
 
 from CSGOproto import csgo_base, gcsdk_gcmessages_pb2, cstrike15_gcmessages_pb2
-
+from gevent import sleep
 
 class SteamClientHandler(object):
     def __init__(self, messageHandler):
         self.messageHandler = messageHandler
         self.auth_code = None
+        self.two_factor_code = None
         self.firstlogin = False
 
     def try_initialize_connection(self, client):
         if not self.get_sentry_file(self.messageHandler.username):
             self.firstlogin = True
 
-        logon_result = self.messageHandler.client.login(self.messageHandler.username, self.messageHandler.password, auth_code=self.auth_code)
+        logon_result = self.messageHandler.client.login(self.messageHandler.username, self.messageHandler.password, auth_code=self.auth_code, two_factor_code=self.two_factor_code)
 
         if logon_result.eresult == EResult.AccountLogonDenied:
             client.disconnect()
@@ -116,7 +117,7 @@ class CSGO(object):
         message.body.games_played.add(game_id=self.appid)
         self.gc.client.connection.send_message(message)
 
-        time.sleep(5)
+        time.sleep(3)
         response = self.sendClientHello()
 
         if Util.get_msg(response.body.msgtype) == csgo_base.EGCBaseClientMsg.k_EMsgGCClientWelcome:
@@ -147,20 +148,22 @@ class CSGO(object):
 
 class User(object):
     def __init__(self):
+        sleep(0)
         self.username = None
         self.password = None
         self.client = SteamClient(SteamClientHandler(self))
-        #self.client.initialize()
         self.gc = SteamGC(self.client, 730)
         self.csgo = CSGO(self.gc)
 
-    def login(self, username=None, password=None, authcode=None):
+    def login(self, username=None, password=None, authcode=None, two_factor_code=None):
         if username:
             self.username = username
         if password:
             self.password = password
         if authcode:
             self.client.callback.auth_code = authcode
+        if two_factor_code:
+            self.client.callback.two_factor_code = two_factor_code
         return self.client.initialize()
 
     def setState(self, state):
@@ -236,11 +239,3 @@ def getMarketItems(url, count, currency, start=0):
         datadic[assetID] = [marketID, link.replace('%assetid%', assetID).replace('%listingid%', marketID), price]
 
     return datadic, soldcount
-
-
-
-
-
-
-
-

@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
 
 from PySide import QtCore, QtGui
+import gevent.monkey
+gevent.monkey.patch_all() #TODO: check this
+
+
 import os
 import pkg_resources
 import webbrowser
 import FloatGetter
+from totp import generateAuthCode
 import time
 from collections import OrderedDict
 from decimal import Decimal
@@ -18,6 +23,11 @@ sys.setrecursionlimit(5000)
 class Ui_MainWindow(QtCore.QObject):
     processItems = QtCore.Signal(object)
     getMarketData = QtCore.Signal(object)
+    _login = QtCore.Signal(bool)
+    _worker_login = QtCore.Signal(tuple)
+    _disconnect_user = QtCore.Signal(bool)
+    init_login = QtCore.Signal(bool)
+    _process_single = QtCore.Signal(bool)
 
     def __init__(self):
         QtCore.QObject.__init__(self)
@@ -46,6 +56,12 @@ class Ui_MainWindow(QtCore.QObject):
         self.WorkerThread.ShowError.connect(self.showError)
         self.WorkerThread.ShowInfo.connect(self.showInfo)
         self.WorkerThread.SetCurrHeader.connect(self.setCurrHeader)
+
+        self.WorkerThread.display_error.connect(lambda x: self.display_error(x))
+        self.WorkerThread.MainLogin.connect(self.login)
+
+        self.init_login.emit(True)
+
 
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -337,7 +353,11 @@ class Ui_MainWindow(QtCore.QObject):
     def ParseSingle(self):
         self.popup = PopupDialog(self)
         self.popup.setupUi(self.popup)
+        self.popup._get_single.connect(self.process_single)
         self.popup.exec_()
+
+    def process_single(self):
+        self._process_single.emit(True)
 
     def ExportCSV(self):
         outname, _ = QtGui.QFileDialog.getSaveFileName(MainWindow, 'Open file', '', 'Comma Separated Values (*.csv)')
@@ -417,6 +437,25 @@ class Ui_MainWindow(QtCore.QObject):
     def setCurrHeader(self, header):
         self.tableWidget.horizontalHeaderItem(2).setText('Price (%s)' % header)
 
+    def login(self):
+        loginPopup = LoginUI(self)
+
+        loginPopup._login.connect(self.worker_login)
+        loginPopup._disconnect_user.connect(self.disconnect_user)
+
+        loginPopup.setupUi(loginPopup)
+        loginPopup.exec_()
+
+    def worker_login(self):
+        print 'worker_login func'
+        self._worker_login.emit(True)
+
+    def disconnect_user(self):
+        self._disconnect_user.emit(True)
+
+    def display_error(self, msg):
+        QtGui.QMessageBox.warning(QtGui.QWidget(), 'Error', msg, QtGui.QMessageBox.Close)
+
 
 class WorkerThread(QtCore.QObject):
     taskDone = QtCore.Signal(str)
@@ -436,15 +475,27 @@ class WorkerThread(QtCore.QObject):
     ShowInfo = QtCore.Signal(tuple)
     SetCurrHeader = QtCore.Signal(str)
 
+    display_error = QtCore.Signal(str)
+    MainLogin = QtCore.Signal(bool)
+
+    single_post_float = QtCore.Signal(str)
+    single_post_type = QtCore.Signal(str)
+    single_post_seed = QtCore.Signal(str)
 
     def __init__(self, parent):
         QtCore.QObject.__init__(self)
         self.parent = parent
         self.parent.processItems.connect(self.ProcessItems)
         self.parent.getMarketData.connect(self.GetMarketData)
+        self.parent._process_single.connect(self.process_single)
+
+        self.parent._worker_login.connect(self.login)
+        self.parent._disconnect_user.connect(self.disconnect_user)
+        self.parent.init_login.connect(self.init_login)
 
         self.progresscount = None
         self.marketdata = None
+        self.singlelink = None
         self.delay = None
         self.pause = False
 
@@ -456,27 +507,57 @@ class WorkerThread(QtCore.QObject):
         self.UserObject = None
         self.username = None
         self.password = None
+        self.sharedsecret = None
+        self.auth_code = None
+        self.auth_type = None
 
-        self.login()
+        self.loggedin = False
+        self.loginstatus = None
 
+
+    def init_login(self):
+        print QtCore.QThread.currentThread().objectName(), '3t4ewe4tg*-*-*--*'
+
+        self.MainLogin.emit(True)
+
+    #@QtCore.Slot(tuple)
     def login(self):
-        self.UserObject = FloatGetter.User()
-        loginPopup = LoginUI(self)
-        loginPopup.setupUi(loginPopup)
-        loginPopup.exec_()
+        if self.UserObject:
+            self.UserObject.disconnect()
 
-    @QtCore.Slot(object)
-    def ProcessItems(self):
-        if self.username and self.password:
-            # Have to log in from this function every time processing starts; for some reason it won't work otherwise
-            self.UserObject = FloatGetter.User()
-            self.UserObject.login(self.username, self.password)
+        self.UserObject = FloatGetter.User()
+        print QtCore.QThread.currentThread().objectName(), 'WOEKRER LONGI FUNC'
+
+        print self.username, self.password, self.auth_code, self.auth_type
+
+        print 'login bit'
+        if self.auth_type == '2fa':
+            self.loginstatus = self.UserObject.login(self.username, self.password, two_factor_code=self.auth_code)
+        elif self.auth_type == 'email':
+            self.loginstatus = self.UserObject.login(self.username, self.password, authcode=self.auth_code)
         else:
-            QtGui.QMessageBox.warning(QtGui.QWidget(), 'Error', 'You must sign in first. Please restart the program.', QtGui.QMessageBox.Close)
+            self.loginstatus = self.UserObject.login(self.username, self.password)
 
         if self.UserObject.client.connection.connected:
+            print 'connected'
             self.UserObject.csgo.launch()
         else:
+            print 'not conn'
+
+    def disconnect_user(self):
+        self.UserObject.disconnect()
+
+
+
+    #@QtCore.Slot(object)
+    def ProcessItems(self):
+        print QtCore.QThread.currentThread().objectName(), 'PROCESS WORKER'
+        if not self.username and not self.password:
+            self.display_error.emit('You must sign in first. Please restart the program.')
+            return
+
+        if not self.UserObject.client.connection.connected:
+            self.display_error.emit('You are not connected to Steam. Please restart the program.')
             return
 
         for n in range(self.progresscount, len(self.marketdata)):
@@ -545,7 +626,6 @@ class WorkerThread(QtCore.QObject):
                 self.progressSignal.emit(int(float(self.progresscount/float(len(self.marketdata)))*100))
             else:
                 self.pause = False
-                self.UserObject.disconnect()
                 self.StartEn.emit(True)
                 self.PauseDis.emit(True)
                 self.RetrieveEn.emit(True)
@@ -553,7 +633,6 @@ class WorkerThread(QtCore.QObject):
                 self.SetStatus.emit('Processing paused, press "Start" to continue. If you want to process a different set of data, clear the table first.')
                 return
 
-        self.UserObject.disconnect()
         self.SetStatus.emit('Processing Finished. Clear table before starting a new process.')
         self.StartEn.emit(True)
         self.PauseDis.emit(True)
@@ -622,6 +701,57 @@ class WorkerThread(QtCore.QObject):
                     self.SetCurrHeader.emit(self.currencysym)
                     self.SetStatus.emit("%s skins retrieved. Read to start processing. Estimated processing time, with %s delay, is %s seconds." % (len(self.marketdata), self.delay, self.delay*len(self.marketdata)))
 
+    def process_single(self):
+        if str(self.singlelink).startswith('steam://rungame/730/'):
+            if not self.username and not self.password:
+                self.display_error.emit('You must sign in first. Please restart the program.')
+                return
+
+            if not self.UserObject.client.connection.connected:
+                self.display_error.emit('You are not connected to Steam. Please restart the program.')
+                return
+
+            itemcode = self.singlelink.replace('steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20' ,'').split('A')
+            # If Market item or Inventory item
+            if itemcode[0].startswith('S'):
+                param_s = int(itemcode[0].replace('S',''))
+                param_m = None
+            else:
+                param_m = int(itemcode[0].replace('M',''))
+                param_s = None
+
+            itemAD = itemcode[1].split('D')
+            param_a = int(itemAD[0])
+            param_d = int(itemAD[1])
+
+            try:
+                if param_s:
+                    data = self.UserObject.csgo.requestEconData(param_a, param_d, param_s=param_s)
+                elif param_m:
+                    data = self.UserObject.csgo.requestEconData(param_a, param_d, param_m=param_m)
+
+                paintseed = data.iteminfo.paintseed
+                paintindex = data.iteminfo.paintindex
+                paintwear = data.iteminfo.paintwear
+
+                skinFloat = FloatGetter.getfloat(paintwear)
+                floatvalue = Decimal(skinFloat).quantize(Decimal('1.000000000000'))
+
+                try:
+                    skinid = 'ID' + str(paintindex)
+                    paintindex = itemIndex.index[skinid]
+                except KeyError:
+                    pass
+
+                self.single_post_float.emit(str(floatvalue))
+                self.single_post_type.emit(str(floatvalue))
+                self.single_post_seed.emit(str(paintseed))
+
+            except TypeError:
+                return
+
+        else:
+            QtGui.QMessageBox.warning(self, 'Error', 'Please enter a inspect in game link.', QtGui.QMessageBox.Close)
 
 
 class QCustomTableWidgetItem(QtGui.QTableWidgetItem):
@@ -644,14 +774,19 @@ class QCustomTableWidgetItem(QtGui.QTableWidgetItem):
 
 
 class PopupDialog(QtGui.QDialog):
+    _get_single = QtCore.Signal(bool)
+
     def __init__(self, parent=None):
         super(PopupDialog, self).__init__()
         self.callback = parent
         self.setWindowFlags(QtCore.Qt.WindowSystemMenuHint)
+        self.callback.WorkerThread.single_post_float.connect(lambda x: self.post_float(x))
+        self.callback.WorkerThread.single_post_type.connect(lambda x: self.post_type(x))
+        self.callback.WorkerThread.single_post_seed.connect(lambda x: self.post_seed(x))
 
     def setupUi(self, Form):
         Form.setObjectName("Parse Single Item")
-        Form.resize(435, 71)
+        Form.resize(600, 71)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("logo.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         Form.setWindowIcon(icon)
@@ -660,7 +795,7 @@ class PopupDialog(QtGui.QDialog):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(Form.sizePolicy().hasHeightForWidth())
         Form.setSizePolicy(sizePolicy)
-        Form.setMaximumSize(QtCore.QSize(431, 71))
+        Form.setMaximumSize(QtCore.QSize(800, 71))
         self.verticalLayout = QtGui.QVBoxLayout(Form)
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout = QtGui.QHBoxLayout()
@@ -688,6 +823,24 @@ class PopupDialog(QtGui.QDialog):
         self.ResultBox.setReadOnly(True)
         self.ResultBox.setObjectName("ResultBox")
         self.horizontalLayout_2.addWidget(self.ResultBox)
+        self.label_3 = QtGui.QLabel(Form)
+        self.label_3.setObjectName("label_3")
+        self.horizontalLayout_2.addWidget(self.label_3)
+        self.SkinTypeBox = QtGui.QLineEdit(Form)
+        self.SkinTypeBox.setText("")
+        self.SkinTypeBox.setAlignment(QtCore.Qt.AlignCenter)
+        self.SkinTypeBox.setReadOnly(True)
+        self.SkinTypeBox.setObjectName("SkinTypeBox")
+        self.horizontalLayout_2.addWidget(self.SkinTypeBox)
+        self.label_4 = QtGui.QLabel(Form)
+        self.label_4.setObjectName("label_4")
+        self.horizontalLayout_2.addWidget(self.label_4)
+        self.SkinSeedBox = QtGui.QLineEdit(Form)
+        self.SkinSeedBox.setText("")
+        self.SkinSeedBox.setAlignment(QtCore.Qt.AlignCenter)
+        self.SkinSeedBox.setReadOnly(True)
+        self.SkinSeedBox.setObjectName("SkinSeedBox")
+        self.horizontalLayout_2.addWidget(self.SkinSeedBox)
         spacerItem1 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout_2.addItem(spacerItem1)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
@@ -702,62 +855,33 @@ class PopupDialog(QtGui.QDialog):
         self.label.setText(QtGui.QApplication.translate("Form", "Inspect Link", None, QtGui.QApplication.UnicodeUTF8))
         self.GetValue.setText(QtGui.QApplication.translate("Form", "Get Value", None, QtGui.QApplication.UnicodeUTF8))
         self.label_2.setText(QtGui.QApplication.translate("Form", "Skin Float Value:", None, QtGui.QApplication.UnicodeUTF8))
-
+        self.label_3.setText(QtGui.QApplication.translate("Form", "Skin Type:", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_4.setText(QtGui.QApplication.translate("Form", "Skin Seed:", None, QtGui.QApplication.UnicodeUTF8))
 
     def GetSingle(self):
-        link = self.InspectLinkBox.displayText()
-        if str(link).startswith('steam://rungame/730/'):
-            if self.callback.WorkerThread.username and self.callback.WorkerThread.password:
-                # Have to log in from this function every time processing starts; for some reason it won't work otherwise
-                # TODO: Find out why User() instances don't work across functions
-                UserObject = FloatGetter.User()
-                UserObject.login(self.callback.WorkerThread.username, self.callback.WorkerThread.password)
-            else:
-                QtGui.QMessageBox.warning(self, 'Error', 'You must sign in first', QtGui.QMessageBox.Close)
+        self.callback.WorkerThread.singlelink = self.InspectLinkBox.displayText()
+        self._get_single.emit(True)
 
-            if UserObject.client.connection.connected:
-                UserObject.csgo.launch()
-            else:
-                return
+    def post_float(self, float):
+        self.ResultBox.setText(float)
 
-            itemcode = link.replace('steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20' ,'').split('A')
-            # If Market item or Inventory item
-            if itemcode[0].startswith('S'):
-                param_s = int(itemcode[0].replace('S',''))
-                param_m = None
-            else:
-                param_m = int(itemcode[0].replace('M',''))
-                param_s = None
+    def post_type(self, type):
+        self.SkinTypeBox.setText(type)
 
-            itemAD = itemcode[1].split('D')
-            param_a = int(itemAD[0])
-            param_d = int(itemAD[1])
-
-            try:
-                if param_s:
-                    data = UserObject.csgo.requestEconData(param_a, param_d, param_s=param_s)
-                elif param_m:
-                    data = UserObject.csgo.requestEconData(param_a, param_d, param_m=param_m)
-
-                paintwear = data.iteminfo.paintwear
-                skinFloat = FloatGetter.getfloat(paintwear)
-                floatvalue = Decimal(skinFloat).quantize(Decimal('1.000000000000'))
-
-                self.ResultBox.setText(str(floatvalue))
-
-            except TypeError:
-                return
-
-        else:
-            QtGui.QMessageBox.warning(self, 'Error', 'Please enter a inspect in game link.', QtGui.QMessageBox.Close)
+    def post_seed(self, seed):
+        self.SkinSeedBox.setText(seed)
 
 
 class LoginUI(QtGui.QDialog):
+    _login = QtCore.Signal(bool)
+    _disconnect_user = QtCore.Signal(bool)
+
     def __init__(self, parent=None):
         super(LoginUI, self).__init__()
         self.callback = parent
         self.setWindowFlags(QtCore.Qt.WindowSystemMenuHint)
         self.overwritten = False
+        self.sharedsecret = None
 
     def setupUi(self, Form):
         Form.setObjectName("Login to Steam")
@@ -831,6 +955,9 @@ class LoginUI(QtGui.QDialog):
                         self.RememberBox.setChecked(True)
                     if line.startswith('password='):
                         self.PasswordBox.setText(line.replace('password=', ''))
+                    if line.startswith('sharedsecret='):
+                        self.sharedsecret = line.replace('sharedsecret=', '')
+                        self.callback.sharedsecret = self.sharedsecret
         except IOError:
             QtGui.QMessageBox.warning(MainWindow, 'Error', 'Could not read settings.txt file! Ensure file exists and try again.', QtGui.QMessageBox.Close)
 
@@ -846,6 +973,9 @@ class LoginUI(QtGui.QDialog):
         self.label_2.setText(QtGui.QApplication.translate("Form", "Password:", None, QtGui.QApplication.UnicodeUTF8))
         self.RememberBox.setText(QtGui.QApplication.translate("Form", "Remember details", None, QtGui.QApplication.UnicodeUTF8))
         self.LoginButton.setText(QtGui.QApplication.translate("Form", "Login", None, QtGui.QApplication.UnicodeUTF8))
+
+    def callback_login(self):
+        self._login.emit(True)
 
     def login(self):
         username = self.UsernameBox.text().encode('ascii')
@@ -875,20 +1005,38 @@ class LoginUI(QtGui.QDialog):
 
         if username and password:
             try:
-                loginstatus = self.callback.UserObject.login(username, password)
+                if self.sharedsecret:
+                    self.callback.WorkerThread.username = username
+                    self.callback.WorkerThread.password = password
+                    self.callback.WorkerThread.auth_code = generateAuthCode(self.sharedsecret)
+                    self.callback.WorkerThread.auth_type = '2fa'
+
+                    self._login.emit(True)
+                else:
+                    self.callback.WorkerThread.username = username
+                    self.callback.WorkerThread.password = password
+                    self.callback.WorkerThread.auth_code = None
+                    self.callback.WorkerThread.auth_type = None
+
+                    self._login.emit(True)
+
+                time.sleep(1.7)
+                loginstatus = self.callback.WorkerThread.loginstatus
+
+                print loginstatus, 'login STAYTUS'
 
                 if loginstatus != True:
                     if loginstatus == 5:
-                        QtGui.QMessageBox.warning(self, 'Error', 'Incorrect password or username.', QtGui.QMessageBox.Close)
-                    elif loginstatus == 63:
-                        self.callback.UserObject.client.disconnect()
-                        authPopup = AuthUI(parent=self)
+                        QtGui.QMessageBox.warning(self, 'Error', 'Incorrect password or username, or too many login attempts.', QtGui.QMessageBox.Close)
+                    elif loginstatus == 63 or loginstatus == 85 or loginstatus == 88:
+                        self._disconnect_user.emit(True)
+
+                        authPopup = AuthUI(parent=self, authstatus=loginstatus)
                         authPopup.setupUi(authPopup)
+                        authPopup._login.connect(self.callback_login)
                         authPopup.exec_()
                         self.close()
                 else:
-                    self.callback.username = username
-                    self.callback.password = password
                     self.close()
                     QtGui.QMessageBox.information(self, 'Success!', 'Signed in to Steam.', QtGui.QMessageBox.Close)
 
@@ -898,18 +1046,16 @@ class LoginUI(QtGui.QDialog):
                 else:
                     QtGui.QMessageBox.warning(self, 'Error', 'Socket error ' + str(serr.errno), QtGui.QMessageBox.Close)
 
-            if self.callback.UserObject.client.connection.connected:
-                # Logged in
-                if self.callback.UserObject.client.callback.firstlogin:
-                    # Send Steam a test message to make sure sentry file is properly registered
-                    self.callback.UserObject.csgo.launch()
         else:
             QtGui.QMessageBox.warning(self, 'Error', 'Please enter your username and password.', QtGui.QMessageBox.Close)
 
 
 class AuthUI(QtGui.QDialog):
-    def __init__(self, parent=None):
+    _login = QtCore.Signal(bool)
+
+    def __init__(self, parent=None, authstatus=0):
         self.callback = parent
+        self.authstatus = authstatus  # 63 = auth_code, 85 = 2fa code
         super(AuthUI, self).__init__()
         self.setWindowFlags(QtCore.Qt.WindowSystemMenuHint)
 
@@ -960,37 +1106,45 @@ class AuthUI(QtGui.QDialog):
 
     def retranslateUi(self, Form):
         Form.setWindowTitle(QtGui.QApplication.translate("Form", "Authenticate", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_3.setText(QtGui.QApplication.translate("Form", "Steam has sent an authentication code to your email, please enter it below.", None, QtGui.QApplication.UnicodeUTF8))
+        if self.authstatus == 63:
+            self.label_3.setText(QtGui.QApplication.translate("Form", "Steam has sent an authentication code to your email, please enter it below.", None, QtGui.QApplication.UnicodeUTF8))
+        elif self.authstatus == 85:
+            self.label_3.setText(QtGui.QApplication.translate("Form", "Please enter your Steam Guard mobile 2FA code.", None, QtGui.QApplication.UnicodeUTF8))
+        elif self.authstatus == 88:
+            self.label_3.setText(QtGui.QApplication.translate("Form", "2FA code incorrect, try again.", None, QtGui.QApplication.UnicodeUTF8))
+
         self.label.setText(QtGui.QApplication.translate("Form", "Auth Code:", None, QtGui.QApplication.UnicodeUTF8))
         self.AuthButton.setText(QtGui.QApplication.translate("Form", "OK", None, QtGui.QApplication.UnicodeUTF8))
 
     def auth(self):
         authcode = self.AuthBox.text().encode('ascii')
-        loginstatus = self.callback.callback.UserObject.login(authcode=authcode)
+
+        if self.authstatus == 85 or self.authstatus == 88:
+            self.callback.callback.WorkerThread.auth_code = authcode
+            self.callback.callback.WorkerThread.auth_type = '2fa'
+
+            print 'trying 2fa'
+            self._login.emit(True)
+        else:
+            self.callback.callback.WorkerThread.auth_code = authcode
+            self.callback.callback.WorkerThread.auth_type = 'email'
+
+            self._login.emit(True)
+
+        time.sleep(1.7)
+        loginstatus = self.callback.callback.WorkerThread.loginstatus
+        print loginstatus, 'AUTH LOGIN STATYUS'
 
         if loginstatus == True:
             self.close()
-        elif loginstatus == 65:
+        elif loginstatus == 65 or loginstatus == 88:
             QtGui.QMessageBox.warning(self, 'Error', 'Incorrect auth code.', QtGui.QMessageBox.Close)
         elif loginstatus == 63:
             QtGui.QMessageBox.warning(self, 'Error', 'Please enter auth code.', QtGui.QMessageBox.Close)
+        elif loginstatus == 85:
+            QtGui.QMessageBox.warning(self, 'Error', 'Please enter your mobile 2FA code.', QtGui.QMessageBox.Close)
         else:
-            QtGui.QMessageBox.warning(self, 'Error', 'Auth failed with error '+str (loginstatus), QtGui.QMessageBox.Close)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            QtGui.QMessageBox.warning(self, 'Error', 'Auth failed with error %s.' % str(loginstatus), QtGui.QMessageBox.Close)
 
 
 
@@ -1005,4 +1159,3 @@ if __name__ == "__main__":
     QtCore.QThread.currentThread().setObjectName('main')
     MainWindow.show()
     sys.exit(app.exec_())
-

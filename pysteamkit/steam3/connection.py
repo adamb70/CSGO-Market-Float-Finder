@@ -197,10 +197,8 @@ class TCPConnection(Connection):
             self.net_write = gevent.spawn(self.__write_data)
 
     def cleanup(self):
-        if not self.connected:
-            return
-
         super(TCPConnection, self).cleanup()
+
         self.write_buffer = []
         self.read_buffer = ''
         if self.socket:
@@ -212,6 +210,9 @@ class TCPConnection(Connection):
         if self.net_write:
             self.net_write.kill()
             self.net_write = None
+
+        if not self.connected:
+            return
 
         self.client.handle_disconnected(self.user_abort)
 

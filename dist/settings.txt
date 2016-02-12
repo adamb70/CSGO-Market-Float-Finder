@@ -1,3 +1,4 @@
 defaultmarketcount=50
 defaultcurrency=0
 defaultdelay=0.7
+//sharedsecret=

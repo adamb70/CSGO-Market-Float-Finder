@@ -482,6 +482,30 @@ class EResult:
     NoMatchingURL = 75
     BadResponse = 76
     RequirePasswordReEntry = 77
+    ValueOutOfRange = 78
+    UnexpectedError = 79
+    Disabled = 80
+    InvalidCEGSubmission = 81
+    RestrictedDevice = 82
+    RegionLocked = 83
+    RateLimitExceeded = 84
+    AccountLoginDeniedNeedTwoFactor = 85
+    ItemDeleted = 86
+    AccountLoginDeniedThrottle = 87
+    TwoFactorCodeMismatch = 88
+    TwoFactorActivationCodeMismatch = 89
+    AccountAssociatedToMultiplePartners = 90
+    NotModified = 91
+    NoMobileDevice = 92
+    TimeNotSynced = 93
+    SMSCodeFailed = 94
+    AccountLimitExceeded = 95
+    AccountActivityLimitExceeded = 96
+    PhoneActivityLimitExceeded = 97
+    RefundToWallet = 98
+    EmailSendFailure = 99
+    NotSettled = 100
+    NeedCaptcha = 101
 
 class EServerType:
     CM = 7

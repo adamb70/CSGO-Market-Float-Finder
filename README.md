@@ -20,7 +20,16 @@ Find Counter Strike: Global Offensive Steam Market skin float values, seeds, and
 
 2. If it is your first time launching the program Steam will send you an authentication email, which the program will ask for. Enter this code and press 'OK'. The program will now save a 'sentry_username.bin' file which will authenticate you every time you log in from now on.
 
-NOTE: If the program tells you that you need to sign in before processing items after your first login, just restart the program and try again. I will try and fix this bug soon.
+*ALTERNATIVELY* - If your account has **mobile authentication enabled** you will have to take the code from the Steam mobile app and enter it into the popup window. You will need to enter a mobile authentication code every time you start this program, unless your save your 'shared secret' key to the settings file.
+	
+The shared secret is used by the mobile authenticator app to generate the auth code. If you save your shared secret in the settings.txt file then this program can automatically generate and enter auth codes each time you log in. To find your shared secret code use one of these methods:
+
+- [iOS](http://forums.backpack.tf/index.php?/topic/45995-guide-how-to-get-your-shared-secret-from-ios-device-steam-mobile/)
+- [Android (rooted)](http://forums.backpack.tf/index.php?/topic/46354-guide-how-to-find-the-steam-identity-secret-on-an-android-phone/)
+- [Android (not rooted)](http://forums.backpack.tf/index.php?/topic/20204-backpacktf-automatic-help-thread/page-65#entry491155)
+
+When you have your shared secret paste in in the `settings.txt` file after `//sharedsecret=` and remove the `//` from the start of the line.
+
 
 #### Finding Market Data
 1. Take the Steam Market URL of the item you want.(eg. http://steamcommunity.com/market/listings/730/%E2%98%85%20Gut%20Knife%20%7C%20Doppler%20%28Factory%20New%29)
@@ -59,6 +68,3 @@ You should not use this while processing market data, as this could mix the resu
 
 ## Information
 Uses **[Pysteamkit](https://bitbucket.org/AzuiSleet/pysteamkit/overview)** - A Python [SteamKit](https://github.com/SteamRE/SteamKit) port by Aziusleet
-
-## TODO
-* Show full information, not only float, on Parse Single Item dialog.
