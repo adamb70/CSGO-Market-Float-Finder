@@ -1,12 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from PySide import QtCore, QtGui
-import gevent.monkey
-gevent.monkey.patch_all() #TODO: check this
 
-
-import os
-import pkg_resources
 import webbrowser
 import FloatGetter
 from totp import generateAuthCode
@@ -19,6 +14,7 @@ from socket import error as socket_error
 import itemIndex
 
 sys.setrecursionlimit(5000)
+
 
 class Ui_MainWindow(QtCore.QObject):
     processItems = QtCore.Signal(object)
@@ -61,7 +57,6 @@ class Ui_MainWindow(QtCore.QObject):
         self.WorkerThread.MainLogin.connect(self.login)
 
         self.init_login.emit(True)
-
 
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -343,7 +338,6 @@ class Ui_MainWindow(QtCore.QObject):
         self.changesettings.setText(QtGui.QApplication.translate("MainWindow", "Settings...", None, QtGui.QApplication.UnicodeUTF8))
         self.actionQuit.setText(QtGui.QApplication.translate("MainWindow", "Quit", None, QtGui.QApplication.UnicodeUTF8))
 
-
     def ReadMe(self):
         webbrowser.open('README.txt')
 
@@ -447,7 +441,6 @@ class Ui_MainWindow(QtCore.QObject):
         loginPopup.exec_()
 
     def worker_login(self):
-        print 'worker_login func'
         self._worker_login.emit(True)
 
     def disconnect_user(self):
@@ -514,23 +507,15 @@ class WorkerThread(QtCore.QObject):
         self.loggedin = False
         self.loginstatus = None
 
-
     def init_login(self):
-        print QtCore.QThread.currentThread().objectName(), '3t4ewe4tg*-*-*--*'
-
         self.MainLogin.emit(True)
 
-    #@QtCore.Slot(tuple)
     def login(self):
         if self.UserObject:
             self.UserObject.disconnect()
 
         self.UserObject = FloatGetter.User()
-        print QtCore.QThread.currentThread().objectName(), 'WOEKRER LONGI FUNC'
 
-        print self.username, self.password, self.auth_code, self.auth_type
-
-        print 'login bit'
         if self.auth_type == '2fa':
             self.loginstatus = self.UserObject.login(self.username, self.password, two_factor_code=self.auth_code)
         elif self.auth_type == 'email':
@@ -539,19 +524,12 @@ class WorkerThread(QtCore.QObject):
             self.loginstatus = self.UserObject.login(self.username, self.password)
 
         if self.UserObject.client.connection.connected:
-            print 'connected'
             self.UserObject.csgo.launch()
-        else:
-            print 'not conn'
 
     def disconnect_user(self):
         self.UserObject.disconnect()
 
-
-
-    #@QtCore.Slot(object)
     def ProcessItems(self):
-        print QtCore.QThread.currentThread().objectName(), 'PROCESS WORKER'
         if not self.username and not self.password:
             self.display_error.emit('You must sign in first. Please restart the program.')
             return
@@ -1023,8 +1001,6 @@ class LoginUI(QtGui.QDialog):
                 time.sleep(1.7)
                 loginstatus = self.callback.WorkerThread.loginstatus
 
-                print loginstatus, 'login STAYTUS'
-
                 if loginstatus != True:
                     if loginstatus == 5:
                         QtGui.QMessageBox.warning(self, 'Error', 'Incorrect password or username, or too many login attempts.', QtGui.QMessageBox.Close)
@@ -1123,7 +1099,6 @@ class AuthUI(QtGui.QDialog):
             self.callback.callback.WorkerThread.auth_code = authcode
             self.callback.callback.WorkerThread.auth_type = '2fa'
 
-            print 'trying 2fa'
             self._login.emit(True)
         else:
             self.callback.callback.WorkerThread.auth_code = authcode
@@ -1133,7 +1108,6 @@ class AuthUI(QtGui.QDialog):
 
         time.sleep(1.7)
         loginstatus = self.callback.callback.WorkerThread.loginstatus
-        print loginstatus, 'AUTH LOGIN STATYUS'
 
         if loginstatus == True:
             self.close()

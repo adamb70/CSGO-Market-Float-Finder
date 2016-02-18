@@ -16,6 +16,7 @@ from pysteamkit.util import Util
 from CSGOproto import csgo_base, gcsdk_gcmessages_pb2, cstrike15_gcmessages_pb2
 from gevent import sleep
 
+
 class SteamClientHandler(object):
     def __init__(self, messageHandler):
         self.messageHandler = messageHandler
