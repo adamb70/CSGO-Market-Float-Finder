@@ -2,7 +2,7 @@
 <html lang="en-us">
   <head>
     <meta charset="UTF-8">
-    <title>CSGO market float finder</title>
+    <title>Csgo-market-float-finder by adamb70</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
     <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
@@ -11,34 +11,34 @@
   </head>
   <body>
     <section class="page-header">
-      <h1 class="project-name">CSGO market float finder</h1>
+      <h1 class="project-name">Csgo-market-float-finder</h1>
       <h2 class="project-tagline">Find Counter Strike:Global Offensive Steam Market skin float values, seeds, and skin type. Tabulates data for easy sorting.</h2>
       <a href="https://github.com/adamb70/CSGO-Market-Float-Finder" class="btn">View on GitHub</a>
-      <a href="http://bit.ly/CSGOmarketfloat" class="btn">Download Program</a>
-      <a href="https://github.com/adamb70/CSGO-Market-Float-Finder/zipball/master" class="btn">Download Source</a>
+      <a href="https://github.com/adamb70/CSGO-Market-Float-Finder/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/adamb70/CSGO-Market-Float-Finder/tarball/master" class="btn">Download .tar.gz</a>
     </section>
 
     <section class="main-content">
       <h1>
-<a id="csgo-market-float-finder" class="anchor" href="#csgo-market-float-finder" aria-hidden="true"><span class="octicon octicon-link"></span></a>CSGO Market Float Finder</h1>
+<a id="csgo-market-float-finder" class="anchor" href="#csgo-market-float-finder" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>CSGO-Market-Float-Finder</h1>
 
 <p>Find Counter Strike: Global Offensive Steam Market skin float values, seeds, and skin type. Tabulates data for easy sorting.</p>
 
 <p><img src="http://i.imgur.com/q2Dqh51.png" alt="Screenshot"></p>
 
 <h2>
-<a id="download" class="anchor" href="#download" aria-hidden="true"><span class="octicon octicon-link"></span></a>Download</h2>
+<a id="download" class="anchor" href="#download" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Download</h2>
 
 <p><strong>Please read the instructions before using this program!</strong></p>
 
 <h2>
-<a id="---download---" class="anchor" href="#---download---" aria-hidden="true"><span class="octicon octicon-link"></span></a>--&gt; <a href="http://bit.ly/CSGOmarketfloat">Download</a> &lt;--</h2>
+<a id="---download---" class="anchor" href="#---download---" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>--&gt; <a href="http://bit.ly/CSGOmarketfloat">Download</a> &lt;--</h2>
 
 <h2>
-<a id="instructions" class="anchor" href="#instructions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Instructions</h2>
+<a id="instructions" class="anchor" href="#instructions" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Instructions</h2>
 
 <h4>
-<a id="signing-in" class="anchor" href="#signing-in" aria-hidden="true"><span class="octicon octicon-link"></span></a>Signing In</h4>
+<a id="signing-in" class="anchor" href="#signing-in" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Signing In</h4>
 
 <p><strong>You must sign in with a Steam account that owns CS:GO!</strong></p>
 
@@ -47,14 +47,23 @@
 <li><p>If it is your first time launching the program Steam will send you an authentication email, which the program will ask for. Enter this code and press 'OK'. The program will now save a 'sentry_username.bin' file which will authenticate you every time you log in from now on.</p></li>
 </ol>
 
-<p>NOTE: If the program tells you that you need to sign in before processing items after your first login, just restart the program and try again. I will try and fix this bug soon.</p>
+<p><em>ALTERNATIVELY</em> - If your account has <strong>mobile authentication enabled</strong> you will have to take the code from the Steam mobile app and enter it into the popup window. You will need to enter a mobile authentication code every time you start this program, unless your save your 'shared secret' key to the settings file.</p>
+
+<p>The shared secret is used by the mobile authenticator app to generate the auth code. If you save your shared secret in the settings.txt file then this program can automatically generate and enter auth codes each time you log in. To find your shared secret code use one of these methods:</p>
+
+<ul>
+<li><a href="http://forums.backpack.tf/index.php?/topic/45995-guide-how-to-get-your-shared-secret-from-ios-device-steam-mobile/">iOS</a></li>
+<li><a href="http://forums.backpack.tf/index.php?/topic/46354-guide-how-to-find-the-steam-identity-secret-on-an-android-phone/">Android (rooted)</a></li>
+<li><a href="http://forums.backpack.tf/index.php?/topic/20204-backpacktf-automatic-help-thread/page-65#entry491155">Android (not rooted)</a></li>
+</ul>
+
+<p>When you have your shared secret paste in in the <code>settings.txt</code> file after <code>//sharedsecret=</code> and remove the <code>//</code> from the start of the line.</p>
 
 <h4>
-<a id="finding-market-data" class="anchor" href="#finding-market-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Finding Market Data</h4>
+<a id="finding-market-data" class="anchor" href="#finding-market-data" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Finding Market Data</h4>
 
 <ol>
-<li><p>Take the Steam Market URL of the item you want.
-(eg. <a href="http://steamcommunity.com/market/listings/730/%E2%98%85%20Gut%20Knife%20%7C%20Doppler%20%28Factory%20New%29">http://steamcommunity.com/market/listings/730/%E2%98%85%20Gut%20Knife%20%7C%20Doppler%20%28Factory%20New%29</a>)</p></li>
+<li><p>Take the Steam Market URL of the item you want.(eg. <a href="http://steamcommunity.com/market/listings/730/%E2%98%85%20Gut%20Knife%20%7C%20Doppler%20%28Factory%20New%29">http://steamcommunity.com/market/listings/730/%E2%98%85%20Gut%20Knife%20%7C%20Doppler%20%28Factory%20New%29</a>)</p></li>
 <li><p>Paste the URL into the Market URL box</p></li>
 <li><p>Select the number of items to retrieve (1-3000).
 <strong>NOTE:</strong> Using a high number such as 3000 will take a while, and using 3000 may cause Steam to throttle your connection for a few minutes. The Steam market only allows 100 results at a time, so 3000 items will query Steam 30 times.</p></li>
@@ -68,7 +77,7 @@ will bring up a dialog to buy the item. If this dialog does not come up, the ite
 </ol>
 
 <h4>
-<a id="additional-features" class="anchor" href="#additional-features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Additional Features</h4>
+<a id="additional-features" class="anchor" href="#additional-features" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Additional Features</h4>
 
 <ul>
 <li>Export as .CSV can be used to export the current contents of the table into a spreadsheet.</li>
@@ -98,16 +107,9 @@ You should not use this while processing market data, as this could mix the resu
 </ul>
 
 <h2>
-<a id="information" class="anchor" href="#information" aria-hidden="true"><span class="octicon octicon-link"></span></a>Information</h2>
+<a id="information" class="anchor" href="#information" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Information</h2>
 
 <p>Uses <strong><a href="https://bitbucket.org/AzuiSleet/pysteamkit/overview">Pysteamkit</a></strong> - A Python <a href="https://github.com/SteamRE/SteamKit">SteamKit</a> port by Aziusleet</p>
-
-<h2>
-<a id="todo" class="anchor" href="#todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>TODO</h2>
-
-<ul>
-<li>Show full information, not only float, on Parse Single Item dialog.</li>
-</ul>
 
       <footer class="site-footer">
         <span class="site-footer-owner"><a href="https://github.com/adamb70/CSGO-Market-Float-Finder">Csgo-market-float-finder</a> is maintained by <a href="https://github.com/adamb70">adamb70</a>.</span>
