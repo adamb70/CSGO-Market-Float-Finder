@@ -438,5 +438,21 @@ index = {
     "ID520": "Avalanche",
     "ID521": "Teclu Burner",
     "ID522": "Fade",
-    "ID523": "Amber Fade"
+    "ID523": "Amber Fade",
+    "ID524": "Fuel Injector",
+    "ID525": "Elite Build",
+    "ID526": "Photic Zone",
+    "ID527": "Kumicho Dragon",
+    "ID528": "Cartel",
+    "ID529": "Valence",
+    "ID530": "Triumvirate",
+    "ID532": "Royal Legion",
+    "ID533": "The Battlestar",
+    "ID534": "Lapis Gator",
+    "ID535": "Praetorian",
+    "ID536": "Impire",
+    "ID537": "Hyper Beast",
+    "ID538": "Necropos",
+    "ID539": "Jambiya",
+    "ID540": "Lead Conduit"
 }
