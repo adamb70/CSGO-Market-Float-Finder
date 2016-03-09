@@ -68,3 +68,5 @@ You should not use this while processing market data, as this could mix the resu
 
 ## Information
 Uses **[Pysteamkit](https://bitbucket.org/AzuiSleet/pysteamkit/overview)** - A Python [SteamKit](https://github.com/SteamRE/SteamKit) port by Aziusleet
+
+If you wish to donate CS:GO skins as thanks, you can use my [trade link](https://steamcommunity.com/tradeoffer/new/?partner=12201816&token=J4sr6Irr).
