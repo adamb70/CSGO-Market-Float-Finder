@@ -394,7 +394,7 @@ class Ui_MainWindow(QtCore.QObject):
         elif self.WorkerThread.currency == 'EUR':
             self.WorkerThread.currencysym = u'€'
         elif self.WorkerThread.currency == 'BRL':
-            self.WorkerThread.WorkerThread.currencysym = u'R$'
+            self.WorkerThread.currencysym = u'R$'
         else:
             self.WorkerThread.currencysym = u'$'
 
