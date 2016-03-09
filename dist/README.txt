@@ -1,4 +1,4 @@
-VERSION 2.00
+VERSION 2.11
 
 Startup/Login:
 	NOTE: You must sign in with a Steam account that owns CS:GO!
