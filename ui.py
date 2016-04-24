@@ -215,9 +215,8 @@ class Ui_MainWindow(QtCore.QObject):
         self.tableWidget.setIconSize(QtCore.QSize(0, 0))
         self.tableWidget.setHorizontalScrollMode(QtGui.QAbstractItemView.ScrollPerPixel)
         self.tableWidget.setCornerButtonEnabled(True)
-        self.tableWidget.setColumnCount(7)
-        self.tableWidget.setObjectName("tableWidget")
-        self.tableWidget.setColumnCount(7)
+        self.tableWidget.setColumnCount(8)
+        self.tableWidget.setObjectName("tableWidget")        
         self.tableWidget.verticalHeader().hide()
         item = QtGui.QTableWidgetItem()
         self.tableWidget.setHorizontalHeaderItem(0, item)
@@ -233,6 +232,8 @@ class Ui_MainWindow(QtCore.QObject):
         self.tableWidget.setHorizontalHeaderItem(5, item)
         item = QtGui.QTableWidgetItem()
         self.tableWidget.setHorizontalHeaderItem(6, item)
+        item = QtGui.QTableWidgetItem()
+        self.tableWidget.setHorizontalHeaderItem(7, item)
         self.tableWidget.horizontalHeader().setDefaultSectionSize(155)
         self.tableWidget.horizontalHeader().setMinimumSectionSize(50)
         self.tableWidget.horizontalHeader().setStretchLastSection(True)
@@ -328,6 +329,7 @@ class Ui_MainWindow(QtCore.QObject):
         self.tableWidget.horizontalHeaderItem(4).setText(QtGui.QApplication.translate("MainWindow", "Skin Type/Index", None, QtGui.QApplication.UnicodeUTF8))
         self.tableWidget.horizontalHeaderItem(5).setText(QtGui.QApplication.translate("MainWindow", "Skin Seed", None, QtGui.QApplication.UnicodeUTF8))
         self.tableWidget.horizontalHeaderItem(6).setText(QtGui.QApplication.translate("MainWindow", "Javascript Market Link", None, QtGui.QApplication.UnicodeUTF8))
+        self.tableWidget.horizontalHeaderItem(7).setText(QtGui.QApplication.translate("MainWindow", "Inspect Link", None, QtGui.QApplication.UnicodeUTF8))
         self.StatusLabel.setText(QtGui.QApplication.translate("MainWindow", "", None, QtGui.QApplication.UnicodeUTF8))
         self.menuHelp.setTitle(QtGui.QApplication.translate("MainWindow", "Help", None, QtGui.QApplication.UnicodeUTF8))
         self.menuFile.setTitle(QtGui.QApplication.translate("MainWindow", "File", None, QtGui.QApplication.UnicodeUTF8))
@@ -543,7 +545,8 @@ class WorkerThread(QtCore.QObject):
             if not self.pause:
                 self.SetStatus.emit('Processing...  %s/%s' % (self.progresscount+1, len(self.marketdata)))
                 skininfo = self.marketdata.items()[n]
-                itemcode = skininfo[1][1].replace('steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20' ,'').split('A')
+                inspectlink = skininfo[1][1]
+                itemcode = inspectlink.replace('steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20' ,'').split('A')
                 # If Market item or Inventory item
                 if itemcode[0].startswith('S'):
                     param_s = int(itemcode[0].replace('S',''))
@@ -597,6 +600,7 @@ class WorkerThread(QtCore.QObject):
                 self.SetTableItem.emit([4, paintindex])
                 self.SetTableItem.emit([5, paintseed])
                 self.SetTableItem.emit([6, javascript])
+                self.SetTableItem.emit([7, inspectlink])
 
                 self.TableSorting.emit(True)
 

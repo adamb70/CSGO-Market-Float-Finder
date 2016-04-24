@@ -223,6 +223,7 @@ def getMarketItems(url, count, currency, start=0):
     except ValueError:
         return 'Response from Steam contains no skin data, URL is probably invalid.', None
 
+    #assetID => [marketID, inspect link, formatted price]
     datadic = OrderedDict()
     soldcount = 0
     for marketID in data:
