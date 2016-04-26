@@ -41,7 +41,7 @@ When you have your shared secret paste in in the `settings.txt` file after `//sh
 
 4. Choose a currency and press 'Retrieve Items'.
 
-5. Choose a Time Delay for each item in the process. If the time delay is too low Steam will not respond to the message in time and no more results will be added to the table. If this occurs, you will have to close the program and start again.
+5. Choose a Time Delay for each item in the process. If the time delay is too low Steam will not respond to the message in time and no more results will be added to the table.
 
 6. Wait until the processing finishes. You may pause the program and continue by pressing 'Pause' and 'Start'. **NOTE:** If you pause the processing and want to start processing a new set of data, clear the table first.
 
