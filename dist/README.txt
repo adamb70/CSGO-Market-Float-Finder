@@ -24,7 +24,7 @@ Then:
 		      The Steam website only allows 100 results at a time, so 3000 items will query Steam 30 times.
 	3) Choose a currency and press 'Retrieve Items'.
 	4) Now that the program has gathered the data it will store it until you gather more data or close the program.
-	5) Next, choose a Time Delay for each item in the process. If the time delay is too low Steam will not respond to the message in time and no more results will be added to the table. If this occurs, you may have to close the program and start again. I recommend leaving it at 0.7 seconds, but depending on your connection speed you may have to increase it. A default value can be set in the settings.txt file.
+	5) Next, choose a Time Delay for each item in the process. If the time delay is too low Steam will not respond to the message in time and no more results will be added to the table. I recommend leaving it at 0.7 seconds, but depending on your connection speed you may have to increase it. A default value can be set in the settings.txt file.
 	6) Wait until the processing finishes. You may pause the program and continue by pressing 'Pause' and 'Start'. NOTE: If you pause the processing and want to start processing a new set of data, clear the table first.
 	7) Once the processing has finished you need to filter by float value to find the lowest one, and then take note of that item's position.
 	   The position represents the item's place in the Steam market at the time of gathering the data. If this position says '27' for example, it will be on the second page since Steam displays 10 items per page.
