@@ -367,7 +367,8 @@ class Ui_MainWindow(QtCore.QObject):
                 col4 = self.tableWidget.item(row, 4)
                 col5 = self.tableWidget.item(row, 5)
                 col6 = self.tableWidget.item(row, 6)
-                outfile.write('%s,%s,%s,%s,%s,%s,"%s"\n' % (col0.text(), col1.text(), col2.text(), col3.text(), col4.text(), col5.text(), col6.text()))
+                col7 = self.tableWidget.item(row, 7)
+                outfile.write('%s,%s,%s,%s,%s,%s,"%s","%s"\n' % (col0.text(), col1.text(), col2.text(), col3.text(), col4.text(), col5.text(), col6.text(), col7.text()))
 
     def ClearTable(self):
         caution = QtGui.QMessageBox.warning(MainWindow, 'Are you sure?', 'Clearing the table will remove all table data and cancel the skin processing. \nAre you sure you wish to continue?', QtGui.QMessageBox.Yes|QtGui.QMessageBox.No)
