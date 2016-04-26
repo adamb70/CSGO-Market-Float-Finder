@@ -14,7 +14,7 @@ from pysteamkit.steam3 import msg_base
 from pysteamkit.util import Util
 
 from CSGOproto import csgo_base, gcsdk_gcmessages_pb2, cstrike15_gcmessages_pb2
-from gevent import sleep
+from gevent import sleep, Timeout
 
 
 class SteamClientHandler(object):
@@ -48,9 +48,10 @@ class SteamClientHandler(object):
             return f.read()
 
     def store_sentry_file(self, username, sentryfile):
-        filename = 'sentry_%s.bin' % (username,)
-        with open(filename, 'wb') as f:
-            f.write(sentryfile)
+        if not self.two_factor_code:
+            filename = 'sentry_%s.bin' % (username,)
+            with open(filename, 'wb') as f:
+                f.write(sentryfile)
 
     def handle_message(self, emsg, msg):
         pass
@@ -129,14 +130,16 @@ class CSGO(object):
     def requestEconData(self, param_a, param_d, param_s=0, param_m=0):
         message = msg_base.ProtobufMessage(cstrike15_gcmessages_pb2.CMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockRequest, csgo_base.ECSGOCMsg.k_EMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockRequest)
 
-        message.body.param_s = param_s #SteamID
-        message.body.param_a = param_a #AssetID
+        message.body.param_s = param_s  # SteamID
+        message.body.param_a = param_a  # AssetID
         message.body.param_d = param_d
-        message.body.param_m = param_m #MarketID
+        message.body.param_m = param_m  # MarketID
 
         self.gc.gcSend(message)
-        response = self.gc.client.wait_for_message(EMsg.ClientFromGC)
-        if Util.get_msg(response.body.msgtype) == csgo_base.ECSGOCMsg.k_EMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockResponse:
+        response = self.gc.client.wait_for_message(EMsg.ClientFromGC, timeout=5.0)
+        if response == 'Timed Out':
+            return 'Steam servers did not respond, your time delay is probably too small.'
+        elif Util.get_msg(response.body.msgtype) == csgo_base.ECSGOCMsg.k_EMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockResponse:
             econData = self.gc.gcFrom(response.body.payload, cstrike15_gcmessages_pb2.CMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockResponse)
             return econData
         else:
@@ -223,7 +226,7 @@ def getMarketItems(url, count, currency, start=0):
     except ValueError:
         return 'Response from Steam contains no skin data, URL is probably invalid.', None
 
-    #assetID => [marketID, inspect link, formatted price]
+    # assetID => [marketID, inspect link, formatted price]
     datadic = OrderedDict()
     soldcount = 0
     for marketID in data:

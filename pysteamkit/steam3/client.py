@@ -1,4 +1,5 @@
 from gevent.event import AsyncResult, Event
+from gevent import Timeout
 
 from pysteamkit.protobuf import steammessages_clientserver_pb2
 from pysteamkit.steam_base import EMsg, EResult, EUniverse, EAccountType
@@ -96,7 +97,7 @@ class SteamClient():
         self.message_constructors[emsg] = (container, header, body)
         self.message_events[emsg] = None
 
-    def wait_for_message(self, emsg):
+    def wait_for_message(self, emsg, timeout=None):
         if not emsg in self.message_events:
             #print emsg, 'not registered!'
             return None
@@ -114,7 +115,9 @@ class SteamClient():
                 async_result = self.message_events[emsg] = AsyncResult()
 
             try:
-                return async_result.get()
+                return async_result.get(timeout=timeout)
+            except Timeout:
+                return 'Timed Out'
             except Exception:
                 pass
 

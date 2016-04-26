@@ -99,7 +99,7 @@ class Ui_MainWindow(QtCore.QObject):
         self.DelaySpinner.setSizePolicy(sizePolicy)
         self.DelaySpinner.setMaximum(20.0)
         self.DelaySpinner.setSingleStep(0.05)
-        self.DelaySpinner.setProperty("value", 2.7)
+        self.DelaySpinner.setProperty("value", 0.7)
         self.DelaySpinner.setObjectName("DelaySpinner")
         self.horizontalLayout.addWidget(self.DelaySpinner)
         spacerItem = QtGui.QSpacerItem(5, 20, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Minimum)
@@ -368,7 +368,7 @@ class Ui_MainWindow(QtCore.QObject):
                 col5 = self.tableWidget.item(row, 5)
                 col6 = self.tableWidget.item(row, 6)
                 col7 = self.tableWidget.item(row, 7)
-                outfile.write('%s,%s,%s,%s,%s,%s,"%s","%s"\n' % (col0.text(), col1.text(), col2.text(), col3.text(), col4.text(), col5.text(), col6.text(), col7.text()))
+                outfile.write('%s,%s,%s,%s,%s,%s,"%s",%s\n' % (col0.text(), col1.text(), col2.text(), col3.text(), col4.text(), col5.text(), col6.text(), col7.text()))
 
     def ClearTable(self):
         caution = QtGui.QMessageBox.warning(MainWindow, 'Are you sure?', 'Clearing the table will remove all table data and cancel the skin processing. \nAre you sure you wish to continue?', QtGui.QMessageBox.Yes|QtGui.QMessageBox.No)
@@ -567,6 +567,11 @@ class WorkerThread(QtCore.QObject):
                     elif param_m:
                         data = self.UserObject.csgo.requestEconData(param_a, param_d, param_m=param_m)
 
+                    if type(data) == str:
+                        self.pause = True
+                        self.display_error.emit(data)
+                        continue
+
                     paintseed = data.iteminfo.paintseed
                     paintindex = data.iteminfo.paintindex
                     paintwear = data.iteminfo.paintwear
@@ -675,7 +680,7 @@ class WorkerThread(QtCore.QObject):
 
                 elif len(self.marketdata) < 1:
                     message = "Found %s available skins and %s sold skins. \nNo skins to process, please check market has available items." % (len(self.marketdata), self.soldcount)
-                    self.ShowError(message)
+                    self.ShowError.emit(message)
                     self.SetStatus.emit('Ready')
                 else:
                     message = "Successfully found %s available skins and %s sold skins. Any sold skins will not be processed. \nClose this message and press 'Start'." % (len(self.marketdata), self.soldcount)
@@ -1122,11 +1127,10 @@ class AuthUI(QtGui.QDialog):
             QtGui.QMessageBox.warning(self, 'Error', 'Please enter auth code.', QtGui.QMessageBox.Close)
         elif loginstatus == 85:
             QtGui.QMessageBox.warning(self, 'Error', 'Please enter your mobile 2FA code.', QtGui.QMessageBox.Close)
+        elif loginstatus == 5:
+            QtGui.QMessageBox.warning(self, 'Error', 'Auth failed: InvalidPassword. Maybe too many login attempts recently, try later.', QtGui.QMessageBox.Close)
         else:
             QtGui.QMessageBox.warning(self, 'Error', 'Auth failed with error %s.' % str(loginstatus), QtGui.QMessageBox.Close)
-
-
-
 
 
 if __name__ == "__main__":
