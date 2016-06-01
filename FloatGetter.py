@@ -17,6 +17,23 @@ from CSGOproto import csgo_base, gcsdk_gcmessages_pb2, cstrike15_gcmessages_pb2
 from gevent import sleep, Timeout
 
 
+logging = 0
+try:
+    with open('settings.txt', 'r') as settings:
+        for line in settings.readlines():
+            if line.startswith('logging='):
+                logging = int(line.replace('logging=', ''))
+except IOError:
+    logging = 1
+
+
+def logEvent(text, forced=False):
+    if logging > 0 or forced:
+        t = time.strftime(">%H:%M:%S")
+        with open('log.txt', 'a') as logfile:
+            logfile.write('%s: %s\n' % (t, text))
+
+
 class SteamClientHandler(object):
     def __init__(self, messageHandler):
         self.messageHandler = messageHandler
@@ -25,10 +42,12 @@ class SteamClientHandler(object):
         self.firstlogin = False
 
     def try_initialize_connection(self, client):
+        logEvent('Trying to initialize...')
         if not self.get_sentry_file(self.messageHandler.username):
             self.firstlogin = True
 
         logon_result = self.messageHandler.client.login(self.messageHandler.username, self.messageHandler.password, auth_code=self.auth_code, two_factor_code=self.two_factor_code)
+        logEvent('Logon result ' + str(logon_result.eresult))
 
         if logon_result.eresult == EResult.AccountLogonDenied:
             client.disconnect()
@@ -54,10 +73,13 @@ class SteamClientHandler(object):
                 f.write(sentryfile)
 
     def handle_message(self, emsg, msg):
+        if logging == 2:
+            logEvent('Received message ' + str(Util.get_msg(emsg)))
         pass
 
     def handle_disconnected(self, client, user_reason):
         if not user_reason:
+            logEvent('Disconnected!')
             for x in range(5):
                 time.sleep(x+1)
                 if client.initialize():
@@ -72,6 +94,8 @@ class SteamGC(object):
 
     def gcSend(self, inputmsg):
         Type = inputmsg.header.emsg
+        if logging == 2:
+            logEvent('gcSend ' + str(Util.get_msg(Type)))
 
         message = msg_base.ProtobufMessage(steammessages_clientserver_pb2.CMsgGCClient, EMsg.ClientToGC)
 
@@ -83,6 +107,8 @@ class SteamGC(object):
         self.client.connection.send_message(message)
 
     def gcFrom(self, data, protobufType):
+        if logging == 2:
+            logEvent('gcFrom ' + str(protobufType))
         message = msg_base.ProtobufMessage(protobufType)
         message.parse(data)
         return message.body
@@ -123,8 +149,10 @@ class CSGO(object):
         response = self.sendClientHello()
 
         if Util.get_msg(response.body.msgtype) == csgo_base.EGCBaseClientMsg.k_EMsgGCClientWelcome:
+            logEvent('Launch successful!')
             return True
         else:
+            logEvent('Tried to launch, but got ' + str(Util.get_msg(response.body.msgtype)))
             return False
 
     def requestEconData(self, param_a, param_d, param_s=0, param_m=0):

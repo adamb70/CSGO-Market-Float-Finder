@@ -6,6 +6,7 @@ import webbrowser
 import FloatGetter
 from totp import generateAuthCode
 import time
+from gevent import sleep
 from collections import OrderedDict
 from decimal import Decimal
 import sys
@@ -14,6 +15,12 @@ from socket import error as socket_error
 import itemIndex
 
 sys.setrecursionlimit(5000)
+open('log.txt', 'w').close()
+
+
+def create_settings():
+    with open('settings.txt', 'w') as settings:
+        settings.write('defaultmarketcount=50\ndefaultcurrency=0\ndefaultdelay=0.7\nlogging=0\n//sharedsecret=')
 
 
 class Ui_MainWindow(QtCore.QObject):
@@ -35,6 +42,7 @@ class Ui_MainWindow(QtCore.QObject):
         self.currency = None
         self.soldcount = 0
         self.start = 0
+        self.logging = 0
 
         self.WorkerThread.progresscount = 0
         self.WorkerThread.SetStatus.connect(lambda x: self.StatusLabel.setText(x))
@@ -54,6 +62,7 @@ class Ui_MainWindow(QtCore.QObject):
         self.WorkerThread.SetCurrHeader.connect(self.setCurrHeader)
 
         self.WorkerThread.display_error.connect(lambda x: self.display_error(x))
+        self.WorkerThread.log_event.connect(lambda x: self.logEvent(x))
         self.WorkerThread.MainLogin.connect(self.login)
 
         self.init_login.emit(True)
@@ -275,17 +284,26 @@ class Ui_MainWindow(QtCore.QObject):
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuHelp.menuAction())
 
-        try:
-            with open('settings.txt', 'r') as settings:
-                for line in settings.readlines():
-                    if line.startswith('defaultcurrency='):
-                        self.CurrencySelector.setCurrentIndex(int(line.replace('defaultcurrency=', '')))
-                    if line.startswith('defaultmarketcount='):
-                        self.CountSpinner.setValue(int(line.replace('defaultmarketcount=', '')))
-                    if line.startswith('defaultdelay='):
-                        self.DelaySpinner.setValue(eval(line.replace('defaultdelay=', '')))
-        except IOError:
-            QtGui.QMessageBox.warning(MainWindow, 'Error', 'Could not read settings.txt file! Ensure file exists and try again.', QtGui.QMessageBox.Close)
+        while True:
+            try:
+                with open('settings.txt', 'r') as settings:
+                    for line in settings.readlines():
+                        if line.startswith('defaultcurrency='):
+                            self.CurrencySelector.setCurrentIndex(int(line.replace('defaultcurrency=', '')))
+                            continue
+                        if line.startswith('defaultmarketcount='):
+                            self.CountSpinner.setValue(int(line.replace('defaultmarketcount=', '')))
+                            continue
+                        if line.startswith('defaultdelay='):
+                            self.DelaySpinner.setValue(eval(line.replace('defaultdelay=', '')))
+                            continue
+                        if line.startswith('logging='):
+                            self.logging = int(line.replace('logging=', ''))
+                break
+            except IOError:
+                self.logEvent('No settings file found!', forced=True)
+                create_settings()
+                continue
 
         self.retranslateUi(MainWindow)
         QtCore.QObject.connect(self.actionQuit, QtCore.SIGNAL("activated()"), MainWindow.close)
@@ -353,6 +371,7 @@ class Ui_MainWindow(QtCore.QObject):
         self.popup.exec_()
 
     def process_single(self):
+        self.WorkerThread.idle = False
         self._process_single.emit(True)
 
     def ExportCSV(self):
@@ -370,9 +389,16 @@ class Ui_MainWindow(QtCore.QObject):
                 col7 = self.tableWidget.item(row, 7)
                 outfile.write('%s,%s,%s,%s,%s,%s,"%s",%s\n' % (col0.text(), col1.text(), col2.text(), col3.text(), col4.text(), col5.text(), col6.text(), col7.text()))
 
+    def logEvent(self, text, forced=False):
+        if self.logging > 0 or forced:
+            t = time.strftime("%H:%M:%S")
+            with open('log.txt', 'a') as logfile:
+                logfile.write('%s: %s\n' % (t, text))
+
     def ClearTable(self):
         caution = QtGui.QMessageBox.warning(MainWindow, 'Are you sure?', 'Clearing the table will remove all table data and cancel the skin processing. \nAre you sure you wish to continue?', QtGui.QMessageBox.Yes|QtGui.QMessageBox.No)
         if caution == QtGui.QMessageBox.StandardButton.Yes:
+            self.WorkerThread.idle = False
             self.WorkerThread.pause = True
             time.sleep(2.5)
             while self.tableWidget.rowCount() > 0:
@@ -385,6 +411,7 @@ class Ui_MainWindow(QtCore.QObject):
 
     def RetrieveItems(self):
         url = self.URLBox.displayText()
+        self.WorkerThread.idle = False
         self.WorkerThread.marketdata = None
         self.WorkerThread.soldcount = 0
         self.WorkerThread.currency = self.CurrencySelector.currentText()
@@ -413,6 +440,7 @@ class Ui_MainWindow(QtCore.QObject):
         self.tableWidget.setItem(self.tableWidget.rowCount()-1, data[0], QCustomTableWidgetItem(data[1]))
 
     def ProcessItems(self):
+        self.WorkerThread.idle = False
         self.WorkerThread.delay = self.DelaySpinner.value()
         self.StartButton.setDisabled(True)
         self.PauseButton.setEnabled(True)
@@ -422,6 +450,7 @@ class Ui_MainWindow(QtCore.QObject):
         self.processItems.emit(object)
 
     def Pause(self):
+        self.WorkerThread.idle = False
         self.StatusLabel.setText("Pausing...")
         self.WorkerThread.pause = True
 
@@ -444,9 +473,11 @@ class Ui_MainWindow(QtCore.QObject):
         loginPopup.exec_()
 
     def worker_login(self):
+        self.WorkerThread.idle = False
         self._worker_login.emit(True)
 
     def disconnect_user(self):
+        self.WorkerThread.idle = False
         self._disconnect_user.emit(True)
 
     def display_error(self, msg):
@@ -472,6 +503,7 @@ class WorkerThread(QtCore.QObject):
     SetCurrHeader = QtCore.Signal(str)
 
     display_error = QtCore.Signal(str)
+    log_event = QtCore.Signal(str)
     MainLogin = QtCore.Signal(bool)
 
     single_post_float = QtCore.Signal(str)
@@ -510,10 +542,19 @@ class WorkerThread(QtCore.QObject):
         self.loggedin = False
         self.loginstatus = None
 
+        self.idle = False
+
     def init_login(self):
         self.MainLogin.emit(True)
 
+    def run_idle(self):
+        self.idle = True
+        while self.idle:
+            sleep(0.00001)
+
     def login(self):
+        self.log_event.emit('Attempting login...')
+
         if self.UserObject:
             self.UserObject.disconnect()
 
@@ -527,18 +568,23 @@ class WorkerThread(QtCore.QObject):
             self.loginstatus = self.UserObject.login(self.username, self.password)
 
         if self.UserObject.client.connection.connected:
+            self.log_event.emit('Attempting to launch CSGO...')
             self.UserObject.csgo.launch()
+            self.run_idle()
 
     def disconnect_user(self):
         self.UserObject.disconnect()
 
     def ProcessItems(self):
+        self.log_event.emit('Processing items...')
+
         if not self.username and not self.password:
             self.display_error.emit('You must sign in first. Please restart the program.')
             return
 
         if not self.UserObject.client.connection.connected:
             self.display_error.emit('You are not connected to Steam. Please restart the program.')
+            self.log_event.emit('Not connected to Steam ' + str(self.UserObject.client.connection.socket))
             return
 
         for n in range(self.progresscount, len(self.marketdata)):
@@ -566,10 +612,16 @@ class WorkerThread(QtCore.QObject):
                         data = self.UserObject.csgo.requestEconData(param_a, param_d, param_s=param_s)
                     elif param_m:
                         data = self.UserObject.csgo.requestEconData(param_a, param_d, param_m=param_m)
+                    else:
+                        self.display_error.emit('Bad inspect link ' + inspectlink)
+                        self.log_event.emit('Bad inspect link ' + inspectlink)
+                        self.run_idle()
+                        return
 
                     if type(data) == str:
                         self.pause = True
                         self.display_error.emit(data)
+                        self.log_event.emit('EconData response ' + str(data))
                         continue
 
                     paintseed = data.iteminfo.paintseed
@@ -585,10 +637,12 @@ class WorkerThread(QtCore.QObject):
                     except KeyError:
                         pass
 
-                except TypeError:
+                except TypeError as e:
                     self.PauseDis.emit(True)
                     self.StartEn.emit(True)
                     self.RetrieveEn.emit(True)
+                    self.log_event.emit('TypeError: ' + str(e.message))
+                    self.run_idle()
                     return
 
                 price = Decimal(skininfo[1][2])
@@ -619,12 +673,15 @@ class WorkerThread(QtCore.QObject):
                 self.RetrieveEn.emit(True)
                 self.progressSignal.emit(0)
                 self.SetStatus.emit('Processing paused, press "Start" to continue. If you want to process a different set of data, clear the table first.')
+                self.run_idle()
                 return
 
         self.SetStatus.emit('Processing Finished. Clear table before starting a new process.')
         self.StartEn.emit(True)
         self.PauseDis.emit(True)
         self.RetrieveEn.emit(True)
+        self.log_event.emit('Finished processing')
+        self.run_idle()
 
     @QtCore.Slot(str)
     def GetMarketData(self, url):
@@ -632,6 +689,7 @@ class WorkerThread(QtCore.QObject):
         start = 0
         iteration = 1
         self.SetStatus.emit('Gathering Data...')
+        self.log_event.emit('Gathering Market Data')
         while self.count > 100:
             self.count -= 100
             tempdata, tempsold = FloatGetter.getMarketItems(url, 100, self.currency, start)
@@ -669,6 +727,8 @@ class WorkerThread(QtCore.QObject):
 
             if type(self.marketdata) != OrderedDict:
                 self.ShowError.emit(tempdata)
+                self.log_event.emit('Error gathering Market Data: ' + str(tempdata))
+                self.run_idle()
                 return
             else:
                 if len(self.marketdata) + self.soldcount < initialcount:
@@ -688,8 +748,12 @@ class WorkerThread(QtCore.QObject):
                     self.StartEn.emit(True)
                     self.SetCurrHeader.emit(self.currencysym)
                     self.SetStatus.emit("%s skins retrieved. Read to start processing. Estimated processing time, with %s delay, is %s seconds." % (len(self.marketdata), self.delay, self.delay*len(self.marketdata)))
+                self.log_event.emit('Successfully retrieved %s skins.' % len(self.marketdata))
+        self.run_idle()
 
     def process_single(self):
+        self.log_event.emit('Processing item...')
+
         if str(self.singlelink).startswith('steam://rungame/730/'):
             if not self.username and not self.password:
                 self.display_error.emit('You must sign in first. Please restart the program.')
@@ -697,6 +761,7 @@ class WorkerThread(QtCore.QObject):
 
             if not self.UserObject.client.connection.connected:
                 self.display_error.emit('You are not connected to Steam. Please restart the program.')
+                self.log_event.emit('Not connected to Steam ' + str(self.UserObject.client.connection.socket))
                 return
 
             itemcode = self.singlelink.replace('steam://rungame/730/76561202255233023/+csgo_econ_action_preview%20' ,'').split('A')
@@ -717,6 +782,15 @@ class WorkerThread(QtCore.QObject):
                     data = self.UserObject.csgo.requestEconData(param_a, param_d, param_s=param_s)
                 elif param_m:
                     data = self.UserObject.csgo.requestEconData(param_a, param_d, param_m=param_m)
+                else:
+                    self.display_error.emit('Bad inspect link ' + self.singlelink)
+                    self.log_event.emit('Bad inspect link ' + self.singlelink)
+                    self.run_idle()
+                    return
+
+                if type(data) == str:
+                    self.display_error.emit(data)
+                    self.log_event.emit('EconData response ' + str(data))
 
                 paintseed = data.iteminfo.paintseed
                 paintindex = data.iteminfo.paintindex
@@ -735,11 +809,15 @@ class WorkerThread(QtCore.QObject):
                 self.single_post_type.emit(str(floatvalue))
                 self.single_post_seed.emit(str(paintseed))
 
-            except TypeError:
+            except TypeError as e:
+                self.log_event.emit('TypeError: ' + str(e.message))
+                self.run_idle()
                 return
 
         else:
-            QtGui.QMessageBox.warning(self, 'Error', 'Please enter a inspect in game link.', QtGui.QMessageBox.Close)
+            self.display_error.emit('Please enter a inspect in game link.')
+
+        self.run_idle()
 
 
 class QCustomTableWidgetItem(QtGui.QTableWidgetItem):
@@ -935,19 +1013,23 @@ class LoginUI(QtGui.QDialog):
         self.horizontalLayout_4.addItem(spacerItem2)
         self.verticalLayout.addLayout(self.horizontalLayout_4)
 
-        try:
-            with open('settings.txt', 'r') as settings:
-                for line in settings.readlines():
-                    if line.startswith('username='):
-                        self.UsernameBox.setText(line.replace('username=', '').replace('\n',''))
-                        self.RememberBox.setChecked(True)
-                    if line.startswith('password='):
-                        self.PasswordBox.setText(line.replace('password=', ''))
-                    if line.startswith('sharedsecret='):
-                        self.sharedsecret = line.replace('sharedsecret=', '')
-                        self.callback.sharedsecret = self.sharedsecret
-        except IOError:
-            QtGui.QMessageBox.warning(MainWindow, 'Error', 'Could not read settings.txt file! Ensure file exists and try again.', QtGui.QMessageBox.Close)
+        while True:
+            try:
+                with open('settings.txt', 'r') as settings:
+                    for line in settings.readlines():
+                        if line.startswith('username='):
+                            self.UsernameBox.setText(line.replace('username=', '').replace('\n',''))
+                            self.RememberBox.setChecked(True)
+                        if line.startswith('password='):
+                            self.PasswordBox.setText(line.replace('password=', ''))
+                        if line.startswith('sharedsecret='):
+                            self.sharedsecret = line.replace('sharedsecret=', '')
+                            self.callback.sharedsecret = self.sharedsecret
+                break
+            except IOError:
+                self.callback.logEvent('No settings file found!', forced=True)
+                create_settings()
+                continue
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
@@ -966,30 +1048,34 @@ class LoginUI(QtGui.QDialog):
         self._login.emit(True)
 
     def login(self):
+        self.callback.logEvent('Attempting initial login...')
+
         username = self.UsernameBox.text().encode('ascii')
         password = self.PasswordBox.text().encode('ascii')
         remember = self.RememberBox.isChecked()
 
         if remember:
-            try:
-                with open('settings.txt', 'r') as settings:
-                    data = settings.readlines()
+            while True:
+                try:
+                    with open('settings.txt', 'r') as settings:
+                        data = settings.readlines()
 
-                for num, line in enumerate(data):
-                    if line.startswith('username='):
-                        data[num] = line.replace(line, 'username='+username+'\n')
-                    if line.startswith('password='):
-                        data[num] = line.replace(line, 'password='+password)
-                        self.overwritten = True
+                    for num, line in enumerate(data):
+                        if line.startswith('username='):
+                            data[num] = line.replace(line, 'username='+username+'\n')
+                        if line.startswith('password='):
+                            data[num] = line.replace(line, 'password='+password)
+                            self.overwritten = True
 
-                with open('settings.txt', 'w') as settings:
-                    settings.writelines(data)
-                    if not self.overwritten:
-                        settings.seek(0, 2)
-                        settings.writelines(['\nusername='+username, '\npassword='+password])
-
-            except IOError:
-                QtGui.QMessageBox.warning(MainWindow, 'Error', 'Could not read settings.txt file! Ensure file exists and try again.', QtGui.QMessageBox.Close)
+                    with open('settings.txt', 'w') as settings:
+                        settings.writelines(data)
+                        if not self.overwritten:
+                            settings.seek(0, 2)
+                            settings.writelines(['\nusername='+username, '\npassword='+password])
+                    break
+                except IOError:
+                    self.callback.logEvent('No settings file found!', forced=True)
+                    create_settings()
 
         if username and password:
             try:
@@ -1011,6 +1097,8 @@ class LoginUI(QtGui.QDialog):
                 time.sleep(1.7)
                 loginstatus = self.callback.WorkerThread.loginstatus
 
+                self.callback.logEvent('Login attempt response ' + str(loginstatus))
+
                 if loginstatus != True:
                     if loginstatus == 5:
                         QtGui.QMessageBox.warning(self, 'Error', 'Incorrect password or username, or too many login attempts.', QtGui.QMessageBox.Close)
@@ -1027,6 +1115,7 @@ class LoginUI(QtGui.QDialog):
                     QtGui.QMessageBox.information(self, 'Success!', 'Signed in to Steam.', QtGui.QMessageBox.Close)
 
             except socket_error as serr:
+                self.callback.logEvent('Login socket error ' + str(serr.errno))
                 if serr.errno == WSAEHOSTUNREACH:
                     QtGui.QMessageBox.warning(self, 'Error', 'Could not connect to Steam.', QtGui.QMessageBox.Close)
                 else:
@@ -1105,6 +1194,8 @@ class AuthUI(QtGui.QDialog):
     def auth(self):
         authcode = self.AuthBox.text().encode('ascii')
 
+        self.callback.callback.logEvent('Authentication response ' + str(self.authstatus))
+
         if self.authstatus == 85 or self.authstatus == 88:
             self.callback.callback.WorkerThread.auth_code = authcode
             self.callback.callback.WorkerThread.auth_type = '2fa'
@@ -1119,8 +1210,11 @@ class AuthUI(QtGui.QDialog):
         time.sleep(1.7)
         loginstatus = self.callback.callback.WorkerThread.loginstatus
 
+        self.callback.callback.logEvent('Post-auth login attempt response ' + str(loginstatus))
+
         if loginstatus == True:
             self.close()
+            QtGui.QMessageBox.information(self, 'Success!', 'Signed in to Steam.', QtGui.QMessageBox.Close)
         elif loginstatus == 65 or loginstatus == 88:
             QtGui.QMessageBox.warning(self, 'Error', 'Incorrect auth code.', QtGui.QMessageBox.Close)
         elif loginstatus == 63:

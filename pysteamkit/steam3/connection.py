@@ -4,8 +4,7 @@ import StringIO
 import struct
 import traceback
 import zipfile
-from gevent import socket
-from gevent.hub import sleep
+from gevent import socket, sleep
 
 from pysteamkit.crypto import CryptoUtil
 from pysteamkit.protobuf import steammessages_base_pb2, steammessages_clientserver_pb2
@@ -100,7 +99,6 @@ class Connection(object):
             self.split_multi_message(msg)
 
         self.client.handle_message(emsg_real, msg)
-
 
     def channel_encrypt_request(self, msg):
         message = msg_base.Message(msg_base.MsgHdr, msg_base.ChannelEncryptRequest)
@@ -222,6 +220,7 @@ class TCPConnection(Connection):
                 buffer = self.write_buffer[0]
                 self.socket.sendall(buffer)
             except IOError as e:
+                self.net_write = None
                 self.cleanup()
                 return
 
@@ -234,6 +233,7 @@ class TCPConnection(Connection):
             try:
                 data = self.socket.recv(4096)
             except IOError as e:
+                self.net_read = None
                 self.cleanup()
                 return
 

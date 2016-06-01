@@ -2,5 +2,6 @@
 *.py[cod]
 *.exe
 *.ui
+*.bat
 
 build/
