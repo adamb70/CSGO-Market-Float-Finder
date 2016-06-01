@@ -66,6 +66,7 @@ You should not use this while processing market data, as this could mix the resu
       - 4 for CAD
       - 5 for BRL
     - The settings file will also contain your Steam username and password **IN PLAINTEXT** if you choose to check 'Remember Me' on the login form. You can delete these two lines if you have checked 'Remember Me' in the past and no longer want them remembered.
+    - To enable basic debug logging, change `logging=0` to `logging=1`. For more verbose logging set this to `logging=2`.
 
 ## Information
 Uses **[Pysteamkit](https://bitbucket.org/AzuiSleet/pysteamkit/overview)** - A Python [SteamKit](https://github.com/SteamRE/SteamKit) port by Aziusleet
