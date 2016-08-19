@@ -217,7 +217,7 @@ def getfloat(paintwear):
 def getMarketItems(url, count, currency, start=0):
     if not url.startswith('http://') and not url.startswith('https://'):
         url = 'http://' + url
-        
+
     url = url_fix(url)
 
     if currency == 'GBP':
