@@ -1,4 +1,4 @@
-VERSION 2.3.3
+VERSION 2.4.0
 
 Startup/Login:
 	NOTE: You must sign in with a Steam account that owns CS:GO!
@@ -39,7 +39,7 @@ Additional Features:
 				This option brings up a menu that allows you to enter an 'Inspect in game' link, and returns the float value for that skin. This can be used to find the float value for items from outside of the Steam Market.
 				You should not use this while processing market data, as this could mix the results up. Pause any processing first, and resume it after.
 	- Settings:
-				The settings file contains default settings for the program. The currency is set to 0 (USD) buy default, but numbers 1-5 correspond with the currencies shown in the program. 1 being GBP etc.
+				The settings file contains default settings for the program. The currency is set to 0 (USD) buy default, but numbers 1-27 correspond with the currencies shown in the program. 1 being GBP and 27 being AED etc.
 				The settings file will also contain your Steam username and password IN PLAINTEXT if you choose to check 'Remember Me' on the login form. You can delete these two lines if you have checked 'Remember Me' in the past and no longer want it.
 				To enabling debug logging, set `logging` to 1 (for basic logging) or 2 (more verbose logging). The log will be written to `log.txt` and cleared when the program is next launched.
 				

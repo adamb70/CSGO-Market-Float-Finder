@@ -62,9 +62,31 @@ You should not use this while processing market data, as this could mix the resu
     - The settings file contains default settings for the program. The currency is set to 0 (USD) by default, but can be set to:
       - 1 for GBP
       - 2 for EUR
-      - 3 for RUB
-      - 4 for CAD
+      - 3 for CHF
+      - 4 for RUB
       - 5 for BRL
+      - 6 for JPY
+      - 7 for SEK
+      - 8 for IDR
+      - 9 for MYR
+      - 10 for PHP
+      - 11 for SGD
+      - 12 for THB
+      - 13 for KRW
+      - 14 for TRY
+      - 15 for MXN
+      - 16 for CAD
+      - 17 for NZD
+      - 18 for CNY
+      - 19 for INR
+      - 20 for CLP
+      - 21 for PEN
+      - 22 for COP
+      - 23 for ZAR
+      - 24 for HKD
+      - 25 for TWD
+      - 26 for SRD
+      - 27 for AED
     - The settings file will also contain your Steam username and password **IN PLAINTEXT** if you choose to check 'Remember Me' on the login form. You can delete these two lines if you have checked 'Remember Me' in the past and no longer want them remembered.
     - To enable basic debug logging, change `logging=0` to `logging=1`. For more verbose logging set this to `logging=2`.
 

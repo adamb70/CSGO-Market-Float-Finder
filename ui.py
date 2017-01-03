@@ -179,12 +179,10 @@ class Ui_MainWindow(QtCore.QObject):
         self.horizontalLayout_2.addWidget(self.CountSpinner)
         self.CurrencySelector = QtGui.QComboBox(self.centralwidget)
         self.CurrencySelector.setObjectName("CurrencySelector")
-        self.CurrencySelector.addItem("")
-        self.CurrencySelector.addItem("")
-        self.CurrencySelector.addItem("")
-        self.CurrencySelector.addItem("")
-        self.CurrencySelector.addItem("")
-        self.CurrencySelector.addItem("")
+
+        for currency in FloatGetter.CURRENCY:
+            self.CurrencySelector.addItem("")
+
         self.horizontalLayout_2.addWidget(self.CurrencySelector)
         self.RetrieveButton = QtGui.QPushButton(self.centralwidget)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
@@ -225,7 +223,7 @@ class Ui_MainWindow(QtCore.QObject):
         self.tableWidget.setHorizontalScrollMode(QtGui.QAbstractItemView.ScrollPerPixel)
         self.tableWidget.setCornerButtonEnabled(True)
         self.tableWidget.setColumnCount(8)
-        self.tableWidget.setObjectName("tableWidget")        
+        self.tableWidget.setObjectName("tableWidget")
         self.tableWidget.verticalHeader().hide()
         item = QtGui.QTableWidgetItem()
         self.tableWidget.setHorizontalHeaderItem(0, item)
@@ -331,12 +329,12 @@ class Ui_MainWindow(QtCore.QObject):
         self.URLBox.setToolTip(QtGui.QApplication.translate("MainWindow", "Steam Market URL", None, QtGui.QApplication.UnicodeUTF8))
         self.CountSpinner.setToolTip(QtGui.QApplication.translate("MainWindow", "Number of skins to retrieve (1 - 100)", None, QtGui.QApplication.UnicodeUTF8))
         self.CurrencySelector.setToolTip(QtGui.QApplication.translate("MainWindow", "Desired currency of skins", None, QtGui.QApplication.UnicodeUTF8))
-        self.CurrencySelector.setItemText(0, QtGui.QApplication.translate("MainWindow", "USD", None, QtGui.QApplication.UnicodeUTF8))
-        self.CurrencySelector.setItemText(1, QtGui.QApplication.translate("MainWindow", "GBP", None, QtGui.QApplication.UnicodeUTF8))
-        self.CurrencySelector.setItemText(2, QtGui.QApplication.translate("MainWindow", "EUR", None, QtGui.QApplication.UnicodeUTF8))
-        self.CurrencySelector.setItemText(3, QtGui.QApplication.translate("MainWindow", "RUB", None, QtGui.QApplication.UnicodeUTF8))
-        self.CurrencySelector.setItemText(4, QtGui.QApplication.translate("MainWindow", "CAD", None, QtGui.QApplication.UnicodeUTF8))
-        self.CurrencySelector.setItemText(5, QtGui.QApplication.translate("MainWindow", "BRL", None, QtGui.QApplication.UnicodeUTF8))
+
+        i = 0
+        for currency in FloatGetter.CURRENCY:
+            self.CurrencySelector.setItemText(i, QtGui.QApplication.translate("MainWindow", currency, None, QtGui.QApplication.UnicodeUTF8))
+            i += 1
+
         self.RetrieveButton.setText(QtGui.QApplication.translate("MainWindow", "Retrieve Items", None, QtGui.QApplication.UnicodeUTF8))
         self.label_4.setText(QtGui.QApplication.translate("MainWindow", "  Paste Steam Market item URL, then choose number of results to grab. Finally, choose a currency.", None, QtGui.QApplication.UnicodeUTF8))
         self.tableWidget.setSortingEnabled(True)
@@ -415,19 +413,7 @@ class Ui_MainWindow(QtCore.QObject):
         self.WorkerThread.marketdata = None
         self.WorkerThread.soldcount = 0
         self.WorkerThread.currency = self.CurrencySelector.currentText()
-        if self.WorkerThread.currency == 'GBP':
-            self.WorkerThread.currencysym = u'£'
-        elif self.WorkerThread.currency == 'RUB':
-            self.WorkerThread.currencysym = u'руб '
-        elif self.WorkerThread.currency == 'CAD':
-            self.WorkerThread.currencysym = u'$'
-        elif self.WorkerThread.currency == 'EUR':
-            self.WorkerThread.currencysym = u'€'
-        elif self.WorkerThread.currency == 'BRL':
-            self.WorkerThread.currencysym = u'R$'
-        else:
-            self.WorkerThread.currencysym = u'$'
-
+        self.WorkerThread.currencysym = FloatGetter.CURRENCY[self.WorkerThread.currency][1]
         self.WorkerThread.count = self.CountSpinner.value()
         self.WorkerThread.delay = self.DelaySpinner.value()
 

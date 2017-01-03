@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import os
 import time
 import struct
@@ -16,6 +18,34 @@ from pysteamkit.util import Util
 from CSGOproto import csgo_base, gcsdk_gcmessages_pb2, cstrike15_gcmessages_pb2
 from gevent import sleep, Timeout
 
+CURRENCY = OrderedDict([("USD", (1, u"$")),
+                        ("GBP", (2, u"£")),
+                        ("EUR", (3, u"€")),
+                        ("CHF", (4, u"CHF")),
+                        ("RUB", (5, u"pуб")),
+                        ("BRL", (7, u"R$")),
+                        ("JPY", (8, u"¥")),
+                        ("SEK", (9, u"kr")),
+                        ("IDR", (10, u"Rp")),
+                        ("MYR", (11, u"RM")),
+                        ("PHP", (12, u"P")),
+                        ("SGD", (13, u"S$")),
+                        ("THB", (14, u"฿")),
+                        ("KRW", (16, u"₩")),
+                        ("TRY", (17, u"TL")),
+                        ("MXN", (19, u"Mex$")),
+                        ("CAD", (20, u"CDN$")),
+                        ("NZD", (22, u"NZ$")),
+                        ("CNY", (23, u"¥")),
+                        ("INR", (24, u"₹")),
+                        ("CLP", (25, u"CLP$")),
+                        ("PEN", (26, u"S")),
+                        ("COP", (27, u"COL$")),
+                        ("ZAR", (28, u"R")),
+                        ("HKD", (29, u"HK$")),
+                        ("TWD", (30, u"NT$")),
+                        ("SRD", (31, u"SR")),
+                        ("AED", (32, u"AED"))])
 
 logging = 0
 try:
@@ -46,7 +76,8 @@ class SteamClientHandler(object):
         if not self.get_sentry_file(self.messageHandler.username):
             self.firstlogin = True
 
-        logon_result = self.messageHandler.client.login(self.messageHandler.username, self.messageHandler.password, auth_code=self.auth_code, two_factor_code=self.two_factor_code)
+        logon_result = self.messageHandler.client.login(self.messageHandler.username, self.messageHandler.password,
+                                                        auth_code=self.auth_code, two_factor_code=self.two_factor_code)
         logEvent('Logon result ' + str(logon_result.eresult))
 
         if logon_result.eresult == EResult.AccountLogonDenied:
@@ -81,7 +112,7 @@ class SteamClientHandler(object):
         if not user_reason:
             logEvent('Disconnected!')
             for x in range(5):
-                time.sleep(x+1)
+                time.sleep(x + 1)
                 if client.initialize():
                     return True
         return False
@@ -119,12 +150,20 @@ class CSGO(object):
         self.appid = 730
         self.gc = gc
         self.gc.client.register_listener(self)
-        self.gc.client.register_message(csgo_base.GCConnectionStatus.GCConnectionStatus_HAVE_SESSION, msg_base.ProtobufMessage, cstrike15_gcmessages_pb2.CMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockRequest)
-        self.gc.client.register_message(csgo_base.ECSGOCMsg.k_EMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockResponse, msg_base.ProtobufMessage, cstrike15_gcmessages_pb2.CMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockResponse)
-        self.gc.client.register_message(csgo_base.EGCBaseClientMsg.k_EMsgGCClientWelcome, msg_base.ProtobufMessage, gcsdk_gcmessages_pb2.CMsgClientWelcome)
-        self.gc.client.register_message(EMsg.ClientPlayingSessionState, msg_base.ProtobufMessage, steammessages_clientserver_pb2.CMsgClientPlayingSessionState)
-        self.gc.client.register_message(EMsg.ClientToGC, msg_base.ProtobufMessage, steammessages_clientserver_pb2.CMsgGCClient)
-        self.gc.client.register_message(EMsg.ClientFromGC, msg_base.ProtobufMessage, steammessages_clientserver_pb2.CMsgGCClient)
+        self.gc.client.register_message(csgo_base.GCConnectionStatus.GCConnectionStatus_HAVE_SESSION,
+                                        msg_base.ProtobufMessage,
+                                        cstrike15_gcmessages_pb2.CMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockRequest)
+        self.gc.client.register_message(csgo_base.ECSGOCMsg.k_EMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockResponse,
+                                        msg_base.ProtobufMessage,
+                                        cstrike15_gcmessages_pb2.CMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockResponse)
+        self.gc.client.register_message(csgo_base.EGCBaseClientMsg.k_EMsgGCClientWelcome, msg_base.ProtobufMessage,
+                                        gcsdk_gcmessages_pb2.CMsgClientWelcome)
+        self.gc.client.register_message(EMsg.ClientPlayingSessionState, msg_base.ProtobufMessage,
+                                        steammessages_clientserver_pb2.CMsgClientPlayingSessionState)
+        self.gc.client.register_message(EMsg.ClientToGC, msg_base.ProtobufMessage,
+                                        steammessages_clientserver_pb2.CMsgGCClient)
+        self.gc.client.register_message(EMsg.ClientFromGC, msg_base.ProtobufMessage,
+                                        steammessages_clientserver_pb2.CMsgGCClient)
 
     def handle_message(self, emsg, msg):
         emsg = Util.get_msg(emsg)
@@ -134,7 +173,8 @@ class CSGO(object):
             self.exit()
 
     def sendClientHello(self):
-        message = msg_base.ProtobufMessage(gcsdk_gcmessages_pb2.CMsgClientHello, csgo_base.EGCBaseClientMsg.k_EMsgGCClientHello)
+        message = msg_base.ProtobufMessage(gcsdk_gcmessages_pb2.CMsgClientHello,
+                                           csgo_base.EGCBaseClientMsg.k_EMsgGCClientHello)
 
         self.gc.gcSend(message)
         response = self.gc.client.wait_for_message(EMsg.ClientFromGC)
@@ -156,7 +196,9 @@ class CSGO(object):
             return False
 
     def requestEconData(self, param_a, param_d, param_s=0, param_m=0):
-        message = msg_base.ProtobufMessage(cstrike15_gcmessages_pb2.CMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockRequest, csgo_base.ECSGOCMsg.k_EMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockRequest)
+        message = msg_base.ProtobufMessage(
+            cstrike15_gcmessages_pb2.CMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockRequest,
+            csgo_base.ECSGOCMsg.k_EMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockRequest)
 
         message.body.param_s = param_s  # SteamID
         message.body.param_a = param_a  # AssetID
@@ -167,8 +209,10 @@ class CSGO(object):
         response = self.gc.client.wait_for_message(EMsg.ClientFromGC, timeout=5.0)
         if response == 'Timed Out':
             return 'Steam servers did not respond, your time delay is probably too small.'
-        elif Util.get_msg(response.body.msgtype) == csgo_base.ECSGOCMsg.k_EMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockResponse:
-            econData = self.gc.gcFrom(response.body.payload, cstrike15_gcmessages_pb2.CMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockResponse)
+        elif Util.get_msg(
+                response.body.msgtype) == csgo_base.ECSGOCMsg.k_EMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockResponse:
+            econData = self.gc.gcFrom(response.body.payload,
+                                      cstrike15_gcmessages_pb2.CMsgGCCStrike15_v2_Client2GCEconPreviewDataBlockResponse)
             return econData
         else:
             return 'Response was not of type EconPreviewDataBlockResponse'
@@ -219,23 +263,11 @@ def getMarketItems(url, count, currency, start=0):
         url = 'http://' + url
 
     url = url_fix(url)
-
-    if currency == 'GBP':
-        curr = 2
-    elif currency == 'RUB':
-        curr = 5
-    elif currency == 'CAD':
-        curr = 20
-    elif currency == 'EUR':
-        curr = 3
-    elif currency == 'BRL':
-        curr = 7
-    else:
-        curr = 1   # USD
-
+    curr = CURRENCY[currency][0]
     urlextender = '/render/?query=&start=%s&count=%s&currency=%s' % (start, count, curr)
+
     try:
-        request = requests.get(url+urlextender)
+        request = requests.get(url + urlextender)
     except requests.ConnectionError:
         return 'Could not connect. Check URL and make sure you can connect to the internet.', None
     except exceptions.InvalidURL:
@@ -245,7 +277,7 @@ def getMarketItems(url, count, currency, start=0):
         return 'Could not connect to Steam. Retry in a few minutes and check URL.', None
     if len(request.text) < 1000:
         return 'Response from Steam contains no skin data, URL is probably invalid.', None
-    if request.url != url+urlextender:
+    if request.url != url + urlextender:
         return 'Page redirected to %s, so no skins were found. Check your market URL.' % request.url, None
 
     data = request.text.split('"listinginfo":')[1].split(',"assets":')[0]
@@ -259,13 +291,13 @@ def getMarketItems(url, count, currency, start=0):
     soldcount = 0
     for marketID in data:
         try:
-            price = int(data[marketID]['converted_price'])+int(data[marketID]['converted_fee'])
+            price = int(data[marketID]['converted_price']) + int(data[marketID]['converted_fee'])
             padded = "%03d" % (price,)
             price = padded[0:-2] + '.' + padded[-2:]
         except KeyError:
             price = 'SOLD'
             soldcount += 1
-            continue   # Delete this line to keep SOLD ITEMS in the result
+            continue  # Delete this line to keep SOLD ITEMS in the result
         link = data[marketID]['asset']['market_actions'][0]['link']
         assetID = data[marketID]['asset']['id']
         datadic[assetID] = [marketID, link.replace('%assetid%', assetID).replace('%listingid%', marketID), price]
