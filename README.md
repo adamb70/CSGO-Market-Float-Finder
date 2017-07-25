@@ -11,7 +11,7 @@ Find Counter Strike: Global Offensive Steam Market skin float values, seeds, and
 **Please read the instructions before using this program!**
 
 - [Windows 64 bit](http://bit.ly/CSGOmarketfloat)
-- [Windows 32 bit](http://bit.ly/CSGOmarketfloat32)
+- [Windows 32 bit](http://bit.ly/CSGOmarketfloat32ReUp)
 
 ## Instructions
 #### Signing In
