@@ -186,13 +186,18 @@ class CSGO(object):
         self.gc.client.connection.send_message(message)
 
         time.sleep(3)
-        response = self.sendClientHello()
 
-        if Util.get_msg(response.body.msgtype) == csgo_base.EGCBaseClientMsg.k_EMsgGCClientWelcome:
-            logEvent('Launch successful!')
-            return True
-        else:
-            logEvent('Tried to launch, but got ' + str(Util.get_msg(response.body.msgtype)))
+        try:
+            response = self.sendClientHello()
+
+            if Util.get_msg(response.body.msgtype) == csgo_base.EGCBaseClientMsg.k_EMsgGCClientWelcome:
+                logEvent('Launch successful!')
+                return True
+            else:
+                logEvent('Tried to launch, but got ' + str(Util.get_msg(response.body.msgtype)))
+                return False
+        except Exception:
+            logEvent('Not connected, client hello failed to respond. (This is normal on first attempt)')
             return False
 
     def requestEconData(self, param_a, param_d, param_s=0, param_m=0):

@@ -535,6 +535,7 @@ class WorkerThread(QtCore.QObject):
 
     def run_idle(self):
         self.idle = True
+        self.log_event.emit('running idle... ')
         while self.idle:
             sleep(0.00001)
 
@@ -553,7 +554,10 @@ class WorkerThread(QtCore.QObject):
         else:
             self.loginstatus = self.UserObject.login(self.username, self.password)
 
-        if self.UserObject.client.connection.connected:
+        if self.loginstatus:
+            self.loggedin = True
+
+        if self.loggedin and self.UserObject.client.connection.connected:
             self.log_event.emit('Attempting to launch CSGO...')
             self.UserObject.csgo.launch()
             self.run_idle()
@@ -675,18 +679,18 @@ class WorkerThread(QtCore.QObject):
         start = 0
         iteration = 1
         self.SetStatus.emit('Gathering Data...')
-        self.log_event.emit('Gathering Market Data')
+        self.log_event.emit('Gathering Market Data from %s' % url)
         while self.count > 100:
             self.count -= 100
             tempdata, tempsold = FloatGetter.getMarketItems(url, 100, self.currency, start)
             if type(tempdata) != str:
                 if self.marketdata:
                     newtempdict = OrderedDict()
-                    for k,e in self.marketdata.items()+tempdata.items():
+                    for k, e in self.marketdata.items()+tempdata.items():
                         if k in tempdata.keys() and k in self.marketdata.keys():
                             pass
                         else:
-                            newtempdict.setdefault(k,e)
+                            newtempdict.setdefault(k, e)
                         self.marketdata = newtempdict
                 else:
                     self.marketdata = tempdata
@@ -701,11 +705,11 @@ class WorkerThread(QtCore.QObject):
             if type(tempdata) != str:
                 if self.marketdata:
                     newtempdict = OrderedDict()
-                    for k,e in self.marketdata.items()+tempdata.items():
+                    for k, e in self.marketdata.items()+tempdata.items():
                         if k in tempdata.keys() and k in self.marketdata.keys():
                             pass
                         else:
-                            newtempdict.setdefault(k,e)
+                            newtempdict.setdefault(k, e)
                         self.marketdata = newtempdict
                 else:
                     self.marketdata = tempdata
